@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<targets>
+
+  <rrlib name="concurrent_containers_new">
+    <sources>
+      *.h
+      *.cpp
+      queue/**
+    </sources>
+  </rrlib>
+  
+  <testprogram name="basic_queue_test">
+    <sources>
+      test/basic_queue_test.cpp
+    </sources>
+  </testprogram>
+  
+  <testprogram name="queue_stress_tests">
+    <sources>
+      test/queue_stress_tests.cpp
+    </sources>
+  </testprogram>
+  
+</targets>
