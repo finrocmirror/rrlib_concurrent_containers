@@ -415,7 +415,7 @@ protected:
       next = next_first.exchange(NULL);
       if (next == NULL)
       {
-        return NULL;  // queue empty
+        return tPointer();  // queue empty
       }
       read_last = last.exchange(this);
     }

@@ -154,6 +154,9 @@ void DequeueBuffers(tQueue<std::unique_ptr<tTestType>, CONCURRENCY>& queue, bool
 
 int main(int, char**)
 {
+#if (__GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ <= 5))
+  RRLIB_LOG_PRINT(USER, "This test requires at least gcc 4.6.");
+#else
   RRLIB_LOG_PRINT(USER, "Allocating ", (cTHREADS * cBUFFERS * sizeof(tTestType)) / (1024 * 1024), " MB of buffers.");
   tTestType* buffers = new tTestType[cTHREADS * cBUFFERS];
   if (!buffers)
@@ -287,6 +290,6 @@ int main(int, char**)
       abort();
     }
   }
-
+#endif
   return 0;
 }
