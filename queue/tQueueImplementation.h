@@ -74,19 +74,31 @@ class tQueueImplementation
   // this combination of parameters is not supported yet
 };
 
-template <typename T, tQueueConcurrency CONCURRENCY>
-class tQueueImplementation<std::unique_ptr<T>, CONCURRENCY> : public tUniquePtrQueueImplementation<T, CONCURRENCY, std::is_base_of<tQueueable, T>::value, std::is_base_of<tQueueableSingleThreaded, T>::value>
+template <typename T, typename D, tQueueConcurrency CONCURRENCY>
+class tQueueImplementation<std::unique_ptr<T, D>, CONCURRENCY> : public tUniquePtrQueueImplementation<T, D, CONCURRENCY, std::is_base_of<tQueueable, T>::value, std::is_base_of<tQueueableSingleThreaded, T>::value>
 {
-  typedef tUniquePtrQueueImplementation<T, CONCURRENCY, std::is_base_of<tQueueable, T>::value, std::is_base_of<tQueueableSingleThreaded, T>::value> tBase;
+  typedef tUniquePtrQueueImplementation<T, D, CONCURRENCY, std::is_base_of<tQueueable, T>::value, std::is_base_of<tQueueableSingleThreaded, T>::value> tBase;
+
+  static_assert(sizeof(std::unique_ptr<T, D>) == sizeof(void*), "Only unique pointers with Deleter of size 0 may be used in queue. Otherwise, this would be too much info to store in an atomic.");
 
 protected:
 
 //----------------------------------------------------------------------
 // Protected methods
 //----------------------------------------------------------------------
-  inline std::unique_ptr<T> Dequeue(bool& success)
+  ~tQueueImplementation()
   {
-    std::unique_ptr<T> ptr = tBase::Dequeue();
+    // Since we have unique pointers enqueued, we need to delete all enqueued elements
+    bool success = true;
+    while (success)
+    {
+      Dequeue(success);
+    }
+  }
+
+  inline std::unique_ptr<T, D> Dequeue(bool& success)
+  {
+    std::unique_ptr<T, D> ptr = tBase::Dequeue();
     success = ptr.get();
     return std::move(ptr);
   }

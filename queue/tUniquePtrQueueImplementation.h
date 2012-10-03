@@ -67,7 +67,7 @@ class tQueueImplementation;
 /*!
  * Implementation for all queues dealing with unique pointers.
  */
-template <typename T, tQueueConcurrency CONCURRENCY, bool QUEUEABLE_TYPE, bool SINGLE_THREADED_QUEUEABLE_TYPE>
+template <typename T, typename D, tQueueConcurrency CONCURRENCY, bool QUEUEABLE_TYPE, bool SINGLE_THREADED_QUEUEABLE_TYPE>
 class tUniquePtrQueueImplementation : public tQueueImplementation<T, CONCURRENCY>
 {
   // this combination of parameters is not supported yet - put pointers in ordinary queue
@@ -77,7 +77,7 @@ class tUniquePtrQueueImplementation : public tQueueImplementation<T, CONCURRENCY
 //----------------------------------------------------------------------
 protected:
 
-  typedef std::unique_ptr<T> tPointer;
+  typedef std::unique_ptr<T, D> tPointer;
   typedef tQueueImplementation<T, CONCURRENCY> tBase;
 
   inline tPointer Dequeue()
@@ -96,8 +96,8 @@ protected:
 /*!
  * Single threaded implementation for tQueueableSingleThreaded
  */
-template <typename T, bool QUEUEABLE_TYPE>
-class tUniquePtrQueueImplementation<T, tQueueConcurrency::NONE, QUEUEABLE_TYPE, true> : public tQueueableSingleThreaded
+template <typename T, typename D, bool QUEUEABLE_TYPE>
+class tUniquePtrQueueImplementation<T, D, tQueueConcurrency::NONE, QUEUEABLE_TYPE, true> : public tQueueableSingleThreaded
 {
 //----------------------------------------------------------------------
 // Protected methods
@@ -105,7 +105,8 @@ class tUniquePtrQueueImplementation<T, tQueueConcurrency::NONE, QUEUEABLE_TYPE, 
 protected:
 
   typedef tQueueableSingleThreaded tElement;
-  typedef std::unique_ptr<T> tPointer;
+  typedef std::unique_ptr<T, D> tPointer;
+  enum { cMINIMUM_ELEMENTS_IN_QEUEUE = 0 };
 
   tUniquePtrQueueImplementation() :
     last(this)
@@ -150,8 +151,8 @@ private:
 /*!
  * Single threaded implementation for tQueueable
  */
-template <typename T>
-class tUniquePtrQueueImplementation<T, tQueueConcurrency::NONE, true, false> : public tQueueable
+template <typename T, typename D>
+class tUniquePtrQueueImplementation<T, D, tQueueConcurrency::NONE, true, false> : public tQueueable
 {
 //----------------------------------------------------------------------
 // Protected methods
@@ -159,7 +160,8 @@ class tUniquePtrQueueImplementation<T, tQueueConcurrency::NONE, true, false> : p
 protected:
 
   typedef tQueueable tElement;
-  typedef std::unique_ptr<T> tPointer;
+  typedef std::unique_ptr<T, D> tPointer;
+  enum { cMINIMUM_ELEMENTS_IN_QEUEUE = 0 };
 
   tUniquePtrQueueImplementation() :
     last(this)
@@ -203,7 +205,7 @@ private:
 /*!
  * Base class for fast queue implementations: Single-threaded enqeueuing
  */
-template <typename T, bool CONCURRENT>
+template <typename T, typename D, bool CONCURRENT>
 class tFastUniquePtrQueueEnqueueImplementation : public tQueueable
 {
 //----------------------------------------------------------------------
@@ -213,7 +215,16 @@ protected:
 
   tFastUniquePtrQueueEnqueueImplementation() : last(this) {}
 
-  inline void Enqueue(std::unique_ptr<T> && element)
+  ~tFastUniquePtrQueueEnqueueImplementation()
+  {
+    // delete last element
+    if (last != this)
+    {
+      std::unique_ptr<T, D> last_dequeued(static_cast<T*>(last)); // will go out of scope an delete last element
+    }
+  }
+
+  inline void Enqueue(std::unique_ptr<T, D> && element)
   {
     // swap last pointer
     tQueueable* prev = last;
@@ -237,8 +248,8 @@ private:
 /*!
  * Base class for fast queue implementations: Concurrent enqeueuing
  */
-template <typename T>
-class tFastUniquePtrQueueEnqueueImplementation<T, true> : public tQueueable
+template <typename T, typename D>
+class tFastUniquePtrQueueEnqueueImplementation<T, D, true> : public tQueueable
 {
 //----------------------------------------------------------------------
 // Protected methods
@@ -247,7 +258,16 @@ protected:
 
   tFastUniquePtrQueueEnqueueImplementation() : last(this) {}
 
-  inline void Enqueue(std::unique_ptr<T> && element)
+  ~tFastUniquePtrQueueEnqueueImplementation()
+  {
+    // delete last element
+    if (last.load() != this)
+    {
+      std::unique_ptr<T, D> last_dequeued(static_cast<T*>(last.load())); // will go out of scope an delete last element
+    }
+  }
+
+  inline void Enqueue(std::unique_ptr<T, D> && element)
   {
     // swap last pointer
     tQueueable* prev = last.exchange(element.get());
@@ -270,15 +290,16 @@ private:
 /*!
  * Base class for fast multi-reader implementations: Single-threaded dequeueing
  */
-template <typename T, bool CONCURRENT_ENQUEUE, bool CONCURRENT_DEQUEUE>
-class tFastUniquePtrQueueDequeueImplementation : public tFastUniquePtrQueueEnqueueImplementation<T, CONCURRENT_ENQUEUE>
+template <typename T, typename D, bool CONCURRENT_ENQUEUE, bool CONCURRENT_DEQUEUE>
+class tFastUniquePtrQueueDequeueImplementation : public tFastUniquePtrQueueEnqueueImplementation<T, D, CONCURRENT_ENQUEUE>
 {
 //----------------------------------------------------------------------
 // Protected methods
 //----------------------------------------------------------------------
 protected:
 
-  typedef std::unique_ptr<T> tPointer;
+  typedef std::unique_ptr<T, D> tPointer;
+  enum { cMINIMUM_ELEMENTS_IN_QEUEUE = 1 };
 
   tFastUniquePtrQueueDequeueImplementation()
   {
@@ -302,15 +323,16 @@ protected:
 /*!
  * Base class for fast multi-reader implementations: Concurrent Dequeueing
  */
-template <typename T, bool CONCURRENT_ENQUEUE>
-class tFastUniquePtrQueueDequeueImplementation<T, CONCURRENT_ENQUEUE, true> : public tFastUniquePtrQueueEnqueueImplementation<T, CONCURRENT_ENQUEUE>
+template <typename T, typename D, bool CONCURRENT_ENQUEUE>
+class tFastUniquePtrQueueDequeueImplementation<T, D, CONCURRENT_ENQUEUE, true> : public tFastUniquePtrQueueEnqueueImplementation<T, D, CONCURRENT_ENQUEUE>
 {
 //----------------------------------------------------------------------
 // Protected methods
 //----------------------------------------------------------------------
 protected:
 
-  typedef std::unique_ptr<T> tPointer;
+  typedef std::unique_ptr<T, D> tPointer;
+  enum { cMINIMUM_ELEMENTS_IN_QEUEUE = 1 };
 
   tFastUniquePtrQueueDequeueImplementation() : next_cr(this)
   {
@@ -352,44 +374,44 @@ private:
 /*!
  * Implementation for tQueueConcurrency::SINGLE_READER_AND_WRITER_FAST
  */
-template <typename T, bool SINGLE_THREADED_QUEUEABLE_TYPE>
-class tUniquePtrQueueImplementation<T, tQueueConcurrency::SINGLE_READER_AND_WRITER_FAST, true, SINGLE_THREADED_QUEUEABLE_TYPE> :
-  public tFastUniquePtrQueueDequeueImplementation<T, false, false>
+template <typename T, typename D, bool SINGLE_THREADED_QUEUEABLE_TYPE>
+class tUniquePtrQueueImplementation<T, D, tQueueConcurrency::SINGLE_READER_AND_WRITER_FAST, true, SINGLE_THREADED_QUEUEABLE_TYPE> :
+  public tFastUniquePtrQueueDequeueImplementation<T, D, false, false>
 {
 };
 
 /*!
  * Implementation for tQueueConcurrency::MULTIPLE_WRITERS_FAST
  */
-template <typename T, bool SINGLE_THREADED_QUEUEABLE_TYPE>
-class tUniquePtrQueueImplementation<T, tQueueConcurrency::MULTIPLE_WRITERS_FAST, true, SINGLE_THREADED_QUEUEABLE_TYPE> :
-  public tFastUniquePtrQueueDequeueImplementation<T, true, false>
+template <typename T, typename D, bool SINGLE_THREADED_QUEUEABLE_TYPE>
+class tUniquePtrQueueImplementation<T, D, tQueueConcurrency::MULTIPLE_WRITERS_FAST, true, SINGLE_THREADED_QUEUEABLE_TYPE> :
+  public tFastUniquePtrQueueDequeueImplementation<T, D, true, false>
 {
 };
 
 /*!
  * Implementation for tQueueConcurrency::MULTIPLE_READERS_FAST
  */
-template <typename T, bool SINGLE_THREADED_QUEUEABLE_TYPE>
-class tUniquePtrQueueImplementation<T, tQueueConcurrency::MULTIPLE_READERS_FAST, true, SINGLE_THREADED_QUEUEABLE_TYPE> :
-  public tFastUniquePtrQueueDequeueImplementation<T, false, true>
+template <typename T, typename D, bool SINGLE_THREADED_QUEUEABLE_TYPE>
+class tUniquePtrQueueImplementation<T, D, tQueueConcurrency::MULTIPLE_READERS_FAST, true, SINGLE_THREADED_QUEUEABLE_TYPE> :
+  public tFastUniquePtrQueueDequeueImplementation<T, D, false, true>
 {
 };
 
 /*!
  * Implementation for tQueueConcurrency::FULL_FAST
  */
-template <typename T, bool SINGLE_THREADED_QUEUEABLE_TYPE>
-class tUniquePtrQueueImplementation<T, tQueueConcurrency::FULL_FAST, true, SINGLE_THREADED_QUEUEABLE_TYPE> :
-  public tFastUniquePtrQueueDequeueImplementation<T, true, true>
+template <typename T, typename D, bool SINGLE_THREADED_QUEUEABLE_TYPE>
+class tUniquePtrQueueImplementation<T, D, tQueueConcurrency::FULL_FAST, true, SINGLE_THREADED_QUEUEABLE_TYPE> :
+  public tFastUniquePtrQueueDequeueImplementation<T, D, true, true>
 {
 };
 
 /*!
  * Implementation for tQueueConcurrency::MULTIPLE_WRITERS
  */
-template <typename T, bool SINGLE_THREADED_QUEUEABLE_TYPE>
-class tUniquePtrQueueImplementation<T, tQueueConcurrency::MULTIPLE_WRITERS, true, SINGLE_THREADED_QUEUEABLE_TYPE> : public tQueueable
+template <typename T, typename D, bool SINGLE_THREADED_QUEUEABLE_TYPE>
+class tUniquePtrQueueImplementation<T, D, tQueueConcurrency::MULTIPLE_WRITERS, true, SINGLE_THREADED_QUEUEABLE_TYPE> : public tQueueable
 {
 
 //----------------------------------------------------------------------
@@ -397,7 +419,8 @@ class tUniquePtrQueueImplementation<T, tQueueConcurrency::MULTIPLE_WRITERS, true
 //----------------------------------------------------------------------
 protected:
 
-  typedef std::unique_ptr<T> tPointer;
+  typedef std::unique_ptr<T, D> tPointer;
+  enum { cMINIMUM_ELEMENTS_IN_QEUEUE = 0 };
 
   tUniquePtrQueueImplementation() :
     last(this),

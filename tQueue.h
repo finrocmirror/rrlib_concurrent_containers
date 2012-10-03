@@ -87,6 +87,14 @@ class tQueue : queue::tQueueImplementation<T, CONCURRENCY>
 public:
 
   /*!
+   * Minimum number of elements in queue.
+   * In '_FAST' queue implementations this is typically one - meaning that the last
+   * element cannot be dequeued (it can, as soon as another element is enqueued).
+   * Otherwise it's zero.
+   */
+  enum { cMINIMUM_ELEMENTS_IN_QEUEUE = tImplementation::cMINIMUM_ELEMENTS_IN_QEUEUE };
+
+  /*!
    * Remove first element from queue and return it.
    * May only be called by a multiple reader threads concurrently, if CONCURRENT_DEQUEUEING is true.
    *
