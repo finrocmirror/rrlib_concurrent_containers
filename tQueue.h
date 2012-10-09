@@ -72,11 +72,15 @@ namespace concurrent_containers
  * There is no size limit.
  *
  * Using this queue is most efficient, when using std::unique_ptr<U> as type T, with U
- * derived from tQueueable<CONCURRENCY>.
+ * derived from tQueueable (optionally tQueueableSingleThreaded in non-concurrent queues).
  * Otherwise, objects are placed in queue nodes that need to be managed separately.
  * Due to the use of universal queue node objects, sizeof(T) must not be larger than sizeof(void*).
+ *
+ * \tparam T Enqueued elements. Ideally, std::unique_ptr<U> with with U derived from tQueueable (or tQueueableSingleThreaded).
+ * \tparam CONCURRENCY Concurrency that queue should support.
+ * \tparam BOUNDABLE If true the a maximum queue length can be specified, which may be changed at runtime (up to 500K elements)
  */
-template <typename T, tQueueConcurrency CONCURRENCY>
+template <typename T, tQueueConcurrency CONCURRENCY, bool BOUNDABLE = false>
 class tQueue : queue::tQueueImplementation<T, CONCURRENCY>
 {
   typedef queue::tQueueImplementation<T, CONCURRENCY> tImplementation;

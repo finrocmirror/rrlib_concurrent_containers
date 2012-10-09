@@ -39,6 +39,7 @@
 //----------------------------------------------------------------------
 // External includes (system with <>, local with "")
 //----------------------------------------------------------------------
+#include "rrlib/util/tTaggedPointer.h"
 
 //----------------------------------------------------------------------
 // Internal includes with ""
@@ -326,6 +327,9 @@ protected:
 template <typename T, typename D, bool CONCURRENT_ENQUEUE>
 class tFastUniquePtrQueueDequeueImplementation<T, D, CONCURRENT_ENQUEUE, true> : public tFastUniquePtrQueueEnqueueImplementation<T, D, CONCURRENT_ENQUEUE>
 {
+  typedef rrlib::util::tTaggedPointer<tQueueable, false, 16> tFirstPointer;
+  typedef typename tFirstPointer::tStorage tFirstPointerInt;
+
 //----------------------------------------------------------------------
 // Protected methods
 //----------------------------------------------------------------------
@@ -334,29 +338,29 @@ protected:
   typedef std::unique_ptr<T, D> tPointer;
   enum { cMINIMUM_ELEMENTS_IN_QEUEUE = 1 };
 
-  tFastUniquePtrQueueDequeueImplementation() : next_cr(this)
+  tFastUniquePtrQueueDequeueImplementation() : first(tFirstPointer(this, 0))
   {
     this->next_queueable = NULL;
   }
 
   inline tPointer Dequeue()
   {
+    tFirstPointer result = first.load();
     while (true)
     {
-      tQueueable* result = next_cr.load();
       tQueueable* nextnext = result->next_queueable;
       if (nextnext == this || nextnext == NULL)
       {
         return tPointer();
       }
-      if (next_cr.compare_exchange_strong(result, nextnext))
+      if (first.compare_exchange_strong(result, tFirstPointer(nextnext, (result.GetStamp() + 1) & tFirstPointer::cSTAMP_MASK)))
       {
         result->next_queueable = NULL;
-        if (result == this)
+        if (result.GetPointer() == this)
         {
           return Dequeue();
         }
-        return tPointer(static_cast<T*>(result));
+        return tPointer(static_cast<T*>(result.GetPointer()));
       }
     }
   }
@@ -366,8 +370,11 @@ protected:
 //----------------------------------------------------------------------
 private:
 
-  /*! Atomic Pointer to next element in queue */
-  std::atomic<tQueueable*> next_cr;
+  /*!
+   * Atomic Pointer to first element in queue
+   * Pointer tag counts number of dequeued elements => avoids ABA problem while dequeueing
+   */
+  std::atomic<tFirstPointerInt> first;
 
 };
 
