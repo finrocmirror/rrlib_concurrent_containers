@@ -60,7 +60,7 @@ namespace concurrent_containers
 //----------------------------------------------------------------------
 namespace queue
 {
-template <typename T, typename D, tQueueConcurrency CONCURRENCY, bool QUEUEABLE_TYPE, bool QUEUEABLE_SINGLE_THREADED_TYPE>
+template <typename T, typename D, tQueueConcurrency CONCURRENCY, bool BOUNDED, bool QUEUEABLE_TYPE, bool QUEUEABLE_SINGLE_THREADED_TYPE>
 class tUniquePtrQueueImplementation;
 
 template <typename T, typename D, bool CONCURRENT>
@@ -68,6 +68,12 @@ class tFastUniquePtrQueueEnqueueImplementation;
 
 template <typename T, typename D, bool CONCURRENT_ENQUEUE, bool CONCURRENT_DEQUEUE>
 class tFastUniquePtrQueueDequeueImplementation;
+
+template <typename T, typename D, bool FAST>
+class tUniquePtrBoundedDequeueImplementation;
+
+template <typename T, typename D, bool CONCURRENT, bool FAST>
+class tUniquePtrBoundedEnqueueImplementation;
 }
 
 //----------------------------------------------------------------------
@@ -103,7 +109,7 @@ public:
 //----------------------------------------------------------------------
 private:
 
-  template <typename T, typename D, tQueueConcurrency CONCURRENCY, bool QUEUEABLE_TYPE, bool QUEUEABLE_SINGLE_THREADED_TYPE>
+  template <typename T, typename D, tQueueConcurrency CONCURRENCY, bool BOUNDED, bool QUEUEABLE_TYPE, bool QUEUEABLE_SINGLE_THREADED_TYPE>
   friend class queue::tUniquePtrQueueImplementation;
 
   template <typename T, typename D, bool CONCURRENT>
@@ -111,6 +117,12 @@ private:
 
   template <typename T, typename D, bool CONCURRENT_ENQUEUE, bool CONCURRENT_DEQUEUE>
   friend class queue::tFastUniquePtrQueueDequeueImplementation;
+
+  template <typename T, typename D, bool FAST>
+  friend class queue::tUniquePtrBoundedDequeueImplementation;
+
+  template <typename T, typename D, bool CONCURRENT, bool FAST>
+  friend class queue::tUniquePtrBoundedEnqueueImplementation;
 
   tQueueable(bool terminator);
 

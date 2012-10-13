@@ -78,12 +78,16 @@ namespace concurrent_containers
  *
  * \tparam T Enqueued elements. Ideally, std::unique_ptr<U> with with U derived from tQueueable (or tQueueableSingleThreaded).
  * \tparam CONCURRENCY Concurrency that queue should support.
- * \tparam BOUNDABLE If true the a maximum queue length can be specified, which may be changed at runtime (up to 500K elements)
+ * \tparam BOUNDED If true, a 'guiding value' for maximum queue length can be specified.
+ *                 It can be changed at runtime (up to 500K elements).
+ *                 If this length is exceeded, elements enqueued first are discarded.
+ *                 Due to concurrency, however, the queue may temporarily contain more elements.
+ *                 It is guaranteed that elements are discarded only if the queue length exceeds the specified 'guiding value'.
  */
-template <typename T, tQueueConcurrency CONCURRENCY, bool BOUNDABLE = false>
-class tQueue : queue::tQueueImplementation<T, CONCURRENCY>
+template <typename T, tQueueConcurrency CONCURRENCY, bool BOUNDED = false>
+class tQueue : queue::tQueueImplementation<T, CONCURRENCY, BOUNDED>
 {
-  typedef queue::tQueueImplementation<T, CONCURRENCY> tImplementation;
+  typedef queue::tQueueImplementation<T, CONCURRENCY, BOUNDED> tImplementation;
 
 //----------------------------------------------------------------------
 // Public methods and typedefs
@@ -124,6 +128,23 @@ public:
   inline void Enqueue(T && element)
   {
     tImplementation::Enqueue(std::forward<T>(element));
+  }
+
+  /*!
+   * If queue is boundable, the maximum queue length can be set with this method.
+   * (Should not be called by multiple threads concurrently in order to avoid strange side effects)
+   *
+   * Due to concurrency, the queue can temporarily become a little larger than the set.
+   * If this length is exceeded, elements enqueued first are discarded.
+   * Due to concurrency, however, the queue may temporarily contain more elements.
+   * It is guaranteed that elements are discarded only if the queue length exceeds the specified 'guiding value'.
+   *
+   * \param max_length New 'guiding value' for maximum queue length (max. 500000 for concurrent queues)
+   */
+  template <bool ENABLE = BOUNDED>
+  inline void SetMaxLength(typename std::enable_if<ENABLE, int>::type max_length)
+  {
+    tImplementation::SetMaxLength(max_length);
   }
 
 //----------------------------------------------------------------------

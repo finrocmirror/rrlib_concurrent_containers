@@ -79,7 +79,7 @@ std::unique_ptr<tTestType> DequeueElement(Q& queue)
 template <tQueueConcurrency QC>
 void TestQueue()
 {
-  RRLIB_LOG_PRINT(USER, "Testing tQueue<std::unique_ptr<tTestType>, tQueueConcurrency::", make_builder::GetEnumString(QC), ">");
+  RRLIB_LOG_PRINT(USER, "Testing tQueue<std::unique_ptr<tTestType>, tQueueConcurrency::", make_builder::GetEnumString(QC), ", false>");
   tQueue<std::unique_ptr<tTestType>, QC> q;
 
   RRLIB_LOG_PRINT(USER, " Enqueueing ten elements: 1 to 10");
@@ -119,6 +119,51 @@ void TestQueue()
   RRLIB_LOG_PRINT(USER, " ");
 }
 
+template <tQueueConcurrency QC>
+void TestQueueBounded()
+{
+  RRLIB_LOG_PRINT(USER, "Testing tQueue<std::unique_ptr<tTestType>, tQueueConcurrency::", make_builder::GetEnumString(QC), ", true> (max length: 5)");
+  tQueue<std::unique_ptr<tTestType>, QC, true> q;
+  q.SetMaxLength(5);
+
+  RRLIB_LOG_PRINT(USER, " Enqueueing ten elements: 1 to 10");
+  for (int i = 1; i <= 10; i++)
+  {
+    q.Enqueue(std::unique_ptr<tTestType>(new tTestType(i)));
+  }
+  RRLIB_LOG_PRINT(USER, " Dequeueing twelve elements:");
+  for (int i = 0; i < 12; i++)
+  {
+    DequeueElement(q);
+  }
+
+  RRLIB_LOG_PRINT(USER, " Enqueueing ten elements: 11 to 20");
+  for (int i = 11; i <= 20; i++)
+  {
+    q.Enqueue(std::unique_ptr<tTestType>(new tTestType(i)));
+  }
+  RRLIB_LOG_PRINT(USER, " Dequeueing five elements and enqueueing them again:");
+  for (int i = 0; i < 5; i++)
+  {
+    q.Enqueue(DequeueElement(q));
+  }
+  RRLIB_LOG_PRINT(USER, " Dequeueing twelve elements:");
+  for (int i = 0; i < 12; i++)
+  {
+    DequeueElement(q);
+  }
+
+  RRLIB_LOG_PRINT(USER, " Performing one enqueue and dequeue operation 5 times (elements 100 to 104):");
+  for (int i = 0; i < 5; i++)
+  {
+    q.Enqueue(std::unique_ptr<tTestType>(new tTestType(i + 100)));
+    DequeueElement(q);
+  }
+
+  RRLIB_LOG_PRINT(USER, " ");
+}
+
+
 int main(int, char**)
 {
   TestQueue<tQueueConcurrency::NONE>();
@@ -127,5 +172,11 @@ int main(int, char**)
   TestQueue<tQueueConcurrency::MULTIPLE_WRITERS_FAST>();
   TestQueue<tQueueConcurrency::MULTIPLE_READERS_FAST>();
   TestQueue<tQueueConcurrency::FULL_FAST>();
+  TestQueueBounded<tQueueConcurrency::NONE>();
+  TestQueueBounded<tQueueConcurrency::SINGLE_READER_AND_WRITER_FAST>();
+  TestQueueBounded<tQueueConcurrency::MULTIPLE_WRITERS>();
+  TestQueueBounded<tQueueConcurrency::MULTIPLE_WRITERS_FAST>();
+  TestQueueBounded<tQueueConcurrency::MULTIPLE_READERS_FAST>();
+  TestQueueBounded<tQueueConcurrency::FULL_FAST>();
   return 0;
 }

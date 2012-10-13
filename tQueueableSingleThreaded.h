@@ -59,7 +59,7 @@ namespace concurrent_containers
 //----------------------------------------------------------------------
 namespace queue
 {
-template <typename T, typename D, tQueueConcurrency CONCURRENCY, bool QUEUEABLE_TYPE, bool QUEUEABLE_SINGLE_THREADED_TYPE>
+template <typename T, typename D, tQueueConcurrency CONCURRENCY, bool BOUNDED, bool QUEUEABLE_TYPE, bool QUEUEABLE_SINGLE_THREADED_TYPE>
 class tUniquePtrQueueImplementation;
 }
 
@@ -93,7 +93,7 @@ public:
 //----------------------------------------------------------------------
 private:
 
-  template <typename T, typename D, tQueueConcurrency CONCURRENCY, bool QUEUEABLE_TYPE, bool QUEUEABLE_SINGLE_THREADED_TYPE>
+  template <typename T, typename D, tQueueConcurrency CONCURRENCY, bool BOUNDED, bool QUEUEABLE_TYPE, bool QUEUEABLE_SINGLE_THREADED_TYPE>
   friend class queue::tUniquePtrQueueImplementation;
 
   /*!

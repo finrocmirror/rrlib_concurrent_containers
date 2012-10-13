@@ -68,16 +68,16 @@ namespace queue
 /*!
  * Implementations for different types of queues.
  */
-template <typename T, tQueueConcurrency CONCURRENCY>
+template <typename T, tQueueConcurrency CONCURRENCY, bool BOUNDED>
 class tQueueImplementation
 {
   // this combination of parameters is not supported yet
 };
 
-template <typename T, typename D, tQueueConcurrency CONCURRENCY>
-class tQueueImplementation<std::unique_ptr<T, D>, CONCURRENCY> : public tUniquePtrQueueImplementation<T, D, CONCURRENCY, std::is_base_of<tQueueable, T>::value, std::is_base_of<tQueueableSingleThreaded, T>::value>
+template <typename T, typename D, tQueueConcurrency CONCURRENCY, bool BOUNDED>
+class tQueueImplementation<std::unique_ptr<T, D>, CONCURRENCY, BOUNDED> : public tUniquePtrQueueImplementation<T, D, CONCURRENCY, BOUNDED, std::is_base_of<tQueueable, T>::value, std::is_base_of<tQueueableSingleThreaded, T>::value>
 {
-  typedef tUniquePtrQueueImplementation<T, D, CONCURRENCY, std::is_base_of<tQueueable, T>::value, std::is_base_of<tQueueableSingleThreaded, T>::value> tBase;
+  typedef tUniquePtrQueueImplementation<T, D, CONCURRENCY, BOUNDED, std::is_base_of<tQueueable, T>::value, std::is_base_of<tQueueableSingleThreaded, T>::value> tBase;
 
   static_assert(sizeof(std::unique_ptr<T, D>) == sizeof(void*), "Only unique pointers with Deleter of size 0 may be used in queue. Otherwise, this would be too much info to store in an atomic.");
 
