@@ -946,7 +946,7 @@ public:
     last = tTaggedPointer(element, (prev.GetStamp() + 1) & tTaggedPointer::cSTAMP_MASK);
 
     // set "next" of previous element
-    assert(prev.GetPointer() != last.GetPointer && element != this);
+    assert(prev.GetPointer() != last.GetPointer() && element != this);
     prev->next_queueable = element;
 
     // dequeue some elements?
