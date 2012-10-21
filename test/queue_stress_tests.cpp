@@ -60,7 +60,7 @@ using namespace rrlib::concurrent_containers;
 // Const values
 //----------------------------------------------------------------------
 const int cTHREADS = 3;
-const int cBUFFERS = 70000000;
+const int cBUFFERS = 60000000;
 //const int cBUFFERS = 1000000;
 const int cWAIT_EVERY = 20000;
 

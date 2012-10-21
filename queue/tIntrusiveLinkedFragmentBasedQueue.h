@@ -182,7 +182,7 @@ public:
       {
         // append to this chunk
         element->next_queueable = current_last_ptr;
-        element->queueable_pointer = current_last_ptr ? current_last_ptr->queueable_pointer : element.get();
+        element->queueable_pointer = current_last_ptr ? current_last_ptr->queueable_pointer.load() : element.get();
       }
       else
       {

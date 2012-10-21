@@ -219,8 +219,8 @@ public:
   enum { cMINIMUM_ELEMENTS_IN_QEUEUE = 1 };
 
   tIntrusiveLinkedBoundedDequeueImplementation() :
-    inital_element(),
-    first(tTaggedPointer(&inital_element, 0))
+    initial_element(),
+    first(tTaggedPointer(&initial_element, 0))
   {
   }
 
@@ -238,7 +238,7 @@ public:
       if (first.compare_exchange_strong(result, new_first))
       {
         result->next_queueable = NULL;
-        if (result.GetPointer() != &inital_element)
+        if (result.GetPointer() != &initial_element)
         {
           return tPointer(static_cast<T*>(result.GetPointer()));
         }
@@ -249,7 +249,7 @@ public:
 
   tQueueableMost& InitialElement()
   {
-    return inital_element;
+    return initial_element;
   }
 
   /*!
@@ -283,7 +283,7 @@ public:
       if (first.compare_exchange_strong(first_element, new_first))
       {
         first_element->next_queueable = NULL;
-        if (first_element.GetPointer() != &inital_element)
+        if (first_element.GetPointer() != &initial_element)
         {
           // discard element
           tPointer ptr(static_cast<T*>(first_element.GetPointer()));
@@ -305,7 +305,8 @@ public:
 private:
 
   /*! Initial element when queue is otherwise empty */
-  tQueueableMost inital_element;
+  __attribute__((aligned(8)))  // mysterious why it has an offset to this
+  tQueueableMost initial_element;
 
   /*!
    * Atomic Pointer to first element in queue.
