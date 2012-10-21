@@ -19,15 +19,22 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 //----------------------------------------------------------------------
-/*!\file    rrlib/concurrent_containers/tQueueableSingleThreaded.cpp
+/*!\file    rrlib/concurrent_containers/tDequeueMode.h
  *
  * \author  Max Reichardt
  *
- * \date    2012-09-26
+ * \date    2012-10-13
+ *
+ * \brief   Contains tDequeueMode
+ *
+ * \b tDequeueMode
+ *
+ * Different options for how elements can be dequeued from a queue.
  *
  */
 //----------------------------------------------------------------------
-#include "rrlib/concurrent_containers/tQueueableSingleThreaded.h"
+#ifndef __rrlib__concurrent_containers__tDequeueMode_h__
+#define __rrlib__concurrent_containers__tDequeueMode_h__
 
 //----------------------------------------------------------------------
 // External includes (system with <>, local with "")
@@ -35,15 +42,6 @@
 
 //----------------------------------------------------------------------
 // Internal includes with ""
-//----------------------------------------------------------------------
-
-//----------------------------------------------------------------------
-// Debugging
-//----------------------------------------------------------------------
-#include <cassert>
-
-//----------------------------------------------------------------------
-// Namespace usage
 //----------------------------------------------------------------------
 
 //----------------------------------------------------------------------
@@ -59,22 +57,38 @@ namespace concurrent_containers
 //----------------------------------------------------------------------
 
 //----------------------------------------------------------------------
-// Const values
+// Class declaration
 //----------------------------------------------------------------------
+//! Queue Dequeue Mode
+/*!
+ * Different options for how elements can be dequeued from a queue.
+ */
+enum class tDequeueMode
+{
+  /*!
+   * Single elements are dequeued (first in first out)
+   */
+  FIFO,
 
-//----------------------------------------------------------------------
-// Implementation
-//----------------------------------------------------------------------
+  /*!
+   * Single elements are dequeued (first in first out). Using this mode, the last element in the queue might not be dequeueable -
+   * making the queue always contain at least one element (can be determined via tQueue::cMINIMUM_ELEMENTS_IN_QEUEUE).
+   * Such queues are more efficient with respect to computational overhead.
+   */
+  FIFO_FAST,
 
-//----------------------------------------------------------------------
-// tQueueableSingleThreaded constructors
-//----------------------------------------------------------------------
-tQueueableSingleThreaded::tQueueableSingleThreaded() :
-  next_single_threaded_queueable(NULL)
-{}
+  /*!
+   * All elements are dequeued at once and returned in a tQueueFragment.
+   * This is typically the most efficient in concurrent implementations.
+   */
+  ALL
+};
 
 //----------------------------------------------------------------------
 // End of namespace declaration
 //----------------------------------------------------------------------
 }
 }
+
+
+#endif

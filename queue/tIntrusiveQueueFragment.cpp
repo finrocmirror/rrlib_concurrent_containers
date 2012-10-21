@@ -19,22 +19,15 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 //----------------------------------------------------------------------
-/*!\file    rrlib/concurrent_containers/tQueueConcurrency.h
+/*!\file    rrlib/concurrent_containers/queue/tIntrusiveQueueFragment.cpp
  *
  * \author  Max Reichardt
  *
- * \date    2012-09-24
- *
- * \brief   Contains tQueueConcurrency
- *
- * \b tQueueConcurrency
- *
- * Possible concurrency settings for queues.
+ * \date    2012-10-13
  *
  */
 //----------------------------------------------------------------------
-#ifndef __rrlib__concurrent_containers__tQueueConcurrency_h__
-#define __rrlib__concurrent_containers__tQueueConcurrency_h__
+#include "rrlib/concurrent_containers/queue/tIntrusiveQueueFragment.h"
 
 //----------------------------------------------------------------------
 // External includes (system with <>, local with "")
@@ -45,11 +38,22 @@
 //----------------------------------------------------------------------
 
 //----------------------------------------------------------------------
+// Debugging
+//----------------------------------------------------------------------
+#include <cassert>
+
+//----------------------------------------------------------------------
+// Namespace usage
+//----------------------------------------------------------------------
+
+//----------------------------------------------------------------------
 // Namespace declaration
 //----------------------------------------------------------------------
 namespace rrlib
 {
 namespace concurrent_containers
+{
+namespace queue
 {
 
 //----------------------------------------------------------------------
@@ -57,32 +61,50 @@ namespace concurrent_containers
 //----------------------------------------------------------------------
 
 //----------------------------------------------------------------------
-// Class declaration
+// Const values
 //----------------------------------------------------------------------
-//! Possible concurrency settings for queues.
-/*!
- * Possible concurrency settings for queues.
- *
- * In settings postfixed with _FAST, the last element in the queue is not dequeueable -
- * so the queue always contains at least one element.
- * Such queues are more efficient with respect to computational overhead.
- */
-enum class tQueueConcurrency
+
+//----------------------------------------------------------------------
+// Implementation
+//----------------------------------------------------------------------
+void tIntrusiveQueueFragmentQueueable::Turn()
 {
-  NONE,                          //!< Enqueueing and Dequeueing is performed by the same thread (very efficient)
-  //SINGLE_READER_AND_WRITER,    //!< Only a single thread may enqueue concurrently. Only one (other) thread may dequeue concurrently.
-  SINGLE_READER_AND_WRITER_FAST, //!< Only a single thread may enqueue concurrently. Only one (other) thread may dequeue concurrently.
-  MULTIPLE_WRITERS,              //!< Multiple threads may enqueue concurrently
-  MULTIPLE_WRITERS_FAST,         //!< Multiple threads may enqueue concurrently
-  MULTIPLE_READERS_FAST,         //!< Multiple threads may dequeue concurrently
-  FULL_FAST,                     //!< Mutliple threads may enqueue and dequeue concurrently
-};
+  assert((!fifo_order || trim_to_size < 0) && "This only works under these conditions");
+  tQueueableMost* first = PopAny();
+  tQueueableMost* current = first;
+  tQueueableMost* next = PopAny();
+  while (next)
+  {
+    tQueueableMost* prev = current;
+    current = next;
+    next = PopAny();
+    current->next_queueable = prev;
+  }
+
+  to_delete = next_queueable; // any remaining
+  next_queueable = current;
+  fifo_order = !fifo_order;
+  trim_to_size = -1;
+}
+
+void tIntrusiveQueueFragmentQueueableSingleThreaded::Turn()
+{
+  tQueueableSingleThreaded* first = PopAny();
+  tQueueableSingleThreaded* current = first;
+  tQueueableSingleThreaded* next = PopAny();
+  while (next)
+  {
+    tQueueableSingleThreaded* prev = current;
+    current = next;
+    next = PopAny();
+    current->next_single_threaded_queueable = prev;
+  }
+  InitSingleThreaded(current, !fifo_order_single_threaded);
+}
 
 //----------------------------------------------------------------------
 // End of namespace declaration
 //----------------------------------------------------------------------
 }
 }
-
-
-#endif
+}

@@ -29,7 +29,7 @@
  *
  * \b tQueue
  *
- * Concurrent non-blocking FIFO linked Queue.
+ * Concurrent non-blocking Queue.
  *
  */
 //----------------------------------------------------------------------
@@ -43,7 +43,8 @@
 //----------------------------------------------------------------------
 // Internal includes with ""
 //----------------------------------------------------------------------
-#include "rrlib/concurrent_containers/tQueueConcurrency.h"
+#include "rrlib/concurrent_containers/tConcurrency.h"
+#include "rrlib/concurrent_containers/tDequeueMode.h"
 #include "rrlib/concurrent_containers/tQueueable.h"
 #include "rrlib/concurrent_containers/queue/tQueueImplementation.h"
 
@@ -62,72 +63,102 @@ namespace concurrent_containers
 //----------------------------------------------------------------------
 // Class declaration
 //----------------------------------------------------------------------
-//! Concurrent non-blocking FIFO linked Queue.
+//! Concurrent non-blocking Queue.
 /*!
- * This is a concurrent non-blocking FIFO linked queue.
+ * This is a concurrent non-blocking linked queue.
  * It should be suitable for real-time code, as it does not need to allocate memory.
  *
  * Depending on the template parameters, it allows concurrent enqueueing
  * and dequeueing operations.
- * There is no size limit.
+ * There is no size limit - unless BOUNDED is true.
  *
  * Using this queue is most efficient, when using std::unique_ptr<U> as type T, with U
- * derived from tQueueable (optionally tQueueableSingleThreaded in non-concurrent queues).
- * Otherwise, objects are placed in queue nodes that need to be managed separately.
+ * derived from tQueueable<...>.
+ * TODO: Otherwise, objects are placed in queue nodes that need to be managed separately.
  * Due to the use of universal queue node objects, sizeof(T) must not be larger than sizeof(void*).
  *
- * \tparam T Enqueued elements. Ideally, std::unique_ptr<U> with with U derived from tQueueable (or tQueueableSingleThreaded).
- * \tparam CONCURRENCY Concurrency that queue should support.
+ * \tparam T Enqueued elements. Ideally, std::unique_ptr<U> with with U derived from tQueueable<...>
+ * \tparam CONCURRENCY Concurrency that queue should support
+ *                     (#writers = #threads that can enqueue elements concurrently)
+ *                     (#readers = #threads that can dequeue elements concurrently)
+ * \tparam DEQUEUE_MODE Determines how elements can be dequeued from the queue.
  * \tparam BOUNDED If true, a 'guiding value' for maximum queue length can be specified.
  *                 It can be changed at runtime (up to 500K elements).
  *                 If this length is exceeded, elements enqueued first are discarded.
- *                 Due to concurrency, however, the queue may temporarily contain more elements.
+ *                 Due to concurrency and depending on the implementation, however, the queue may contain more elements
+ *                 (up to twice the 'guiding value').
  *                 It is guaranteed that elements are discarded only if the queue length exceeds the specified 'guiding value'.
  */
-template <typename T, tQueueConcurrency CONCURRENCY, bool BOUNDED = false>
-class tQueue : queue::tQueueImplementation<T, CONCURRENCY, BOUNDED>
+template <typename T, tConcurrency CONCURRENCY, tDequeueMode DEQUEUE_MODE, bool BOUNDED = false>
+class tQueue
 {
-  typedef queue::tQueueImplementation<T, CONCURRENCY, BOUNDED> tImplementation;
+  typedef queue::tQueueImplementation<T, CONCURRENCY, DEQUEUE_MODE, BOUNDED> tImplementation;
 
 //----------------------------------------------------------------------
 // Public methods and typedefs
 //----------------------------------------------------------------------
 public:
 
+  /*! Type of enqueued elements */
+  typedef T tElement;
+
   /*!
    * Minimum number of elements in queue.
-   * In '_FAST' queue implementations this is typically one - meaning that the last
+   * In 'tDequeueMode::FIFO_FAST' queue implementations this is typically one - meaning that the last
    * element cannot be dequeued (it can, as soon as another element is enqueued).
    * Otherwise it's zero.
    */
   enum { cMINIMUM_ELEMENTS_IN_QEUEUE = tImplementation::cMINIMUM_ELEMENTS_IN_QEUEUE };
 
   /*!
+   * (Available if DEQUEUE_MODE is FIFO or FIFO_FAST)
    * Remove first element from queue and return it.
-   * May only be called by a multiple reader threads concurrently, if CONCURRENT_DEQUEUEING is true.
+   * May only be called by multiple threads concurrently, if selected CONCURRENCY allows multiple readers.
    *
    * \param success Optional reference to bool that will be set to true, if an element was successfully dequeued - false otherwise.
+   * \param unused Unused parameter for std::enable_if (simply ignore)
    * \return Element that was dequeued. NULL if no element could be dequeued, in case of pointers
    */
-  inline T Dequeue(bool& success)
+  template < bool ENABLE = (DEQUEUE_MODE != tDequeueMode::ALL) >
+  inline T Dequeue(bool& success, typename std::enable_if<ENABLE, void>::type* unused = NULL)
   {
-    return tImplementation::Dequeue(success);
+    return implementation.Dequeue(success);
   }
-  inline T Dequeue()
+  template < bool ENABLE = (DEQUEUE_MODE != tDequeueMode::ALL) >
+  inline T Dequeue(typename std::enable_if<ENABLE, void>::type* unused = NULL)
   {
     bool success = false;
-    return tImplementation::Dequeue(success);
+    return implementation.Dequeue(success);
+  }
+
+  /*!
+   * (Available if DEQUEUE_MODE is ALL)
+   * Remove all available elements in queue and return in a 'queue fragment'.
+   * May only be called by multiple threads concurrently, if selected CONCURRENCY allows multiple readers.
+   *
+   * \param success Optional reference to bool that will be set to true, if an element was successfully dequeued - false otherwise.
+   * \param unused Unused parameter for std::enable_if (simply ignore)
+   * \return Fragment containing all elements that were in queue. If queue is bounded, contains no more elements than was set via SetMaxLength.
+   */
+  template <bool ENABLE = (DEQUEUE_MODE == tDequeueMode::ALL)>
+  inline tQueueFragment<T> DequeueAll(typename std::enable_if<ENABLE, void>::type* unused = NULL)
+  {
+    return implementation.DequeueAll();
   }
 
   /*!
    * Add element to the end of the queue.
-   * May only be called by a single writer threads concurrently, if CONCURRENT_ENQUEUEING is true.
+   * May only be called by multiple threads concurrently, if selected CONCURRENCY allows multiple writers.
    *
    * \param element Element to enqueue
    */
   inline void Enqueue(T && element)
   {
-    tImplementation::Enqueue(std::forward<T>(element));
+    implementation.Enqueue(std::forward<T>(element));
+  }
+  inline void Enqueue(T& element)
+  {
+    implementation.Enqueue(std::move(element));
   }
 
   /*!
@@ -144,7 +175,7 @@ public:
   template <bool ENABLE = BOUNDED>
   inline void SetMaxLength(typename std::enable_if<ENABLE, int>::type max_length)
   {
-    tImplementation::SetMaxLength(max_length);
+    implementation.SetMaxLength(max_length);
   }
 
 //----------------------------------------------------------------------
@@ -153,6 +184,9 @@ public:
 private:
 
   static_assert(sizeof(T) <= sizeof(void*), "Due to the use of universal queue node objects, sizeof(T) must not be larger than sizeof(void*).");
+
+  /*! Queue implementation */
+  tImplementation implementation;
 };
 
 //----------------------------------------------------------------------

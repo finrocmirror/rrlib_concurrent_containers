@@ -19,22 +19,22 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 //----------------------------------------------------------------------
-/*!\file    rrlib/concurrent_containers/queue/tQueueImplementation.h
+/*!\file    rrlib/concurrent_containers/queue/tQueueFragmentImplementation.h
  *
  * \author  Max Reichardt
  *
- * \date    2012-09-25
+ * \date    2012-10-13
  *
- * \brief   Contains tQueueImplementation
+ * \brief   Contains tQueueFragmentImplementation
  *
- * \b tQueueImplementation
+ * \b tQueueFragmentImplementation
  *
- * Implementations for different types of queues.
+ * Implementation of queue fragment for different types.
  *
  */
 //----------------------------------------------------------------------
-#ifndef __rrlib__concurrent_containers__queue__tQueueImplementation_h__
-#define __rrlib__concurrent_containers__queue__tQueueImplementation_h__
+#ifndef __rrlib__concurrent_containers__queue__tQueueFragmentImplementation_h__
+#define __rrlib__concurrent_containers__queue__tQueueFragmentImplementation_h__
 
 //----------------------------------------------------------------------
 // External includes (system with <>, local with "")
@@ -43,9 +43,7 @@
 //----------------------------------------------------------------------
 // Internal includes with ""
 //----------------------------------------------------------------------
-#include "rrlib/concurrent_containers/tQueueable.h"
-#include "rrlib/concurrent_containers/tQueueFragment.h"
-#include "rrlib/concurrent_containers/queue/tUniquePtrQueueImplementation.h"
+#include "rrlib/concurrent_containers/queue/tIntrusiveQueueFragment.h"
 
 //----------------------------------------------------------------------
 // Namespace declaration
@@ -64,65 +62,57 @@ namespace queue
 //----------------------------------------------------------------------
 // Class declaration
 //----------------------------------------------------------------------
-//! Queue Implementation
+//! Queue fragment implementation
 /*!
- * Implementations for different types of queues.
+ * Implementation of queue fragment for different types.
  */
-template <typename T, tConcurrency CONCURRENCY, tDequeueMode DEQUEUE_MODE, bool BOUNDED>
-class tQueueImplementation
+template <typename T>
+class tQueueFragmentImplementation
 {
-  // this combination of parameters is not supported yet
+  // this type T is not supported yet
 };
 
-template <tDequeueMode DEQUEUE_MODE>
-struct tUniquePtrQueueElementDeleter
+template <typename T, typename D>
+class tQueueFragmentImplementation<std::unique_ptr<T, D>> :
+      public tIntrusiveQueueFragment<T, std::is_base_of<tQueueableMost, T>::value, std::is_base_of<tQueueableSingleThreaded, T>::value>
 {
-  template <typename QUEUE>
-  static void DeleteElements(QUEUE& queue)
-  {
-    // Since we have unique pointers enqueued, we need to delete all enqueued elements
-    bool success = true;
-    while (success)
-    {
-      queue.Dequeue(success);
-    }
-    //TODO: DeleteLast() ?
-  }
-};
-
-template <>
-struct tUniquePtrQueueElementDeleter<tDequeueMode::ALL>
-{
-  template <typename QUEUE>
-  static void DeleteElements(QUEUE& queue)
-  {
-    queue.DequeueAll();
-  }
-};
-
-template <typename T, typename D, tConcurrency CONCURRENCY, tDequeueMode DEQUEUE_MODE, bool BOUNDED>
-class tQueueImplementation<std::unique_ptr<T, D>, CONCURRENCY, DEQUEUE_MODE, BOUNDED> :
-  public tUniquePtrQueueImplementation<T, D, CONCURRENCY, DEQUEUE_MODE, BOUNDED, std::is_base_of<tQueueableMost, T>::value>
-{
-  typedef tUniquePtrQueueImplementation<T, D, CONCURRENCY, DEQUEUE_MODE, BOUNDED, std::is_base_of<tQueueableMost, T>::value> tBase;
-
-  static_assert(sizeof(std::unique_ptr<T, D>) == sizeof(void*), "Only unique pointers with Deleter of size 0 may be used in queue. Otherwise, this would be too much info to store in an atomic.");
-
 public:
+  typedef tIntrusiveQueueFragment<T, std::is_base_of<tQueueableMost, T>::value, std::is_base_of<tQueueableSingleThreaded, T>::value> tBase;
+  typedef std::unique_ptr<T, D> tPointer;
 
-  ~tQueueImplementation()
+  tQueueFragmentImplementation() {}
+  tQueueFragmentImplementation(tQueueFragmentImplementation && other) : tBase(std::forward<tBase>(other)) {}
+  tQueueFragmentImplementation& operator=(tQueueFragmentImplementation && other)
   {
-    tUniquePtrQueueElementDeleter<DEQUEUE_MODE>::DeleteElements(*this);
+    tBase::operator=(std::forward<tBase>(other));
+    return *this;
   }
 
-  inline std::unique_ptr<T, D> Dequeue(bool& success)
+  ~tQueueFragmentImplementation()
   {
-    std::unique_ptr<T, D> ptr = tBase::Dequeue();
-    success = ptr.get();
-    return std::move(ptr);
+    tBase::template DeleteObsoleteElements<T, D>();
+    while (!this->Empty())
+    {
+      PopAny();
+    }
   }
 
+  tPointer PopAny()
+  {
+    return tPointer(tBase::PopAny());
+  }
+
+  tPointer PopBack()
+  {
+    return tPointer(tBase::PopBack());
+  }
+
+  tPointer PopFront()
+  {
+    return tPointer(tBase::PopFront());
+  }
 };
+
 
 //----------------------------------------------------------------------
 // End of namespace declaration

@@ -19,32 +19,31 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 //----------------------------------------------------------------------
-/*!\file    rrlib/concurrent_containers/tQueueableSingleThreaded.h
+/*!\file    rrlib/concurrent_containers/tQueueFragment.h
  *
  * \author  Max Reichardt
  *
- * \date    2012-09-26
+ * \date    2012-10-13
  *
- * \brief   Contains tQueueableSingleThreaded
+ * \brief   Contains tQueueFragment
  *
- * \b tQueueableSingleThreaded
+ * \b tQueueFragment
  *
- * This is the base class of queueable objects.
- * It contains the pointer to the next element in singly-linked, non-concurrent queue.
+ * Queue fragment: Set of queue elements obtained from queues with tDequeueMode::ALL.
+ * Elements can be retrieved FIFO and LIFO.
  */
 //----------------------------------------------------------------------
-#ifndef __rrlib__concurrent_containers__tQueueableSingleThreaded_h__
-#define __rrlib__concurrent_containers__tQueueableSingleThreaded_h__
+#ifndef __rrlib__concurrent_containers__tQueueFragment_h__
+#define __rrlib__concurrent_containers__tQueueFragment_h__
 
 //----------------------------------------------------------------------
 // External includes (system with <>, local with "")
 //----------------------------------------------------------------------
-#include <boost/utility.hpp>
 
 //----------------------------------------------------------------------
 // Internal includes with ""
 //----------------------------------------------------------------------
-#include "rrlib/concurrent_containers/tQueueConcurrency.h"
+#include "rrlib/concurrent_containers/queue/tQueueFragmentImplementation.h"
 
 //----------------------------------------------------------------------
 // Namespace declaration
@@ -57,52 +56,95 @@ namespace concurrent_containers
 //----------------------------------------------------------------------
 // Forward declarations / typedefs / enums
 //----------------------------------------------------------------------
-namespace queue
-{
-template <typename T, typename D, tQueueConcurrency CONCURRENCY, bool BOUNDED, bool QUEUEABLE_TYPE, bool QUEUEABLE_SINGLE_THREADED_TYPE>
-class tUniquePtrQueueImplementation;
-}
 
 //----------------------------------------------------------------------
 // Class declaration
 //----------------------------------------------------------------------
-//! Base class for queueable object
+//! Queue fragment
 /*!
- * This is the base class of queueable objects.
- * It contains the pointer to the next element in singly-linked, non-concurrent queue.
+ * Queue fragment: Set of queue elements obtained from queues with tDequeueMode::ALL.
+ * Elements can be retrieved FIFO and LIFO.
  *
- * If objects are used in single-threaded queues only, you should derive
- * from this class instead from tQueueable - as this is more efficient.
- *
- * If objects are used in single-threaded queues also, you may derive from this
- * class additionally - as this is more efficient
- * (computationally, object size will slightly increase though).
+ * \tparam T Enqueued elements. Identical, to parameter T of tQueue that fragment is obtained from.
  */
-class tQueueableSingleThreaded : boost::noncopyable
+template <typename T>
+class tQueueFragment : boost::noncopyable
 {
+  typedef queue::tQueueFragmentImplementation<T> tImplementation;
 
 //----------------------------------------------------------------------
 // Public methods and typedefs
 //----------------------------------------------------------------------
 public:
 
-  tQueueableSingleThreaded();
+  tQueueFragment() {}
+
+  /*! Move constructor */
+  tQueueFragment(tQueueFragment && other)
+  {
+    std::swap(implementation, other.implementation);
+  }
+
+  /*! Constructor used by queue implementations (typically not to be called by client code) */
+  tQueueFragment(tImplementation && implementation)
+  {
+    std::swap(this->implementation, implementation);
+  }
+
+  /*! Move assignment */
+  tQueueFragment& operator=(tQueueFragment && other)
+  {
+    std::swap(implementation, other.implementation);
+    return *this;
+  }
+
+  /*!
+   * \return True, if there are no elements (left) in this fragment.
+   */
+  bool Empty()
+  {
+    return implementation.Empty();
+  }
+
+  /*!
+   * Returns and removes the element from queue fragment that was enqueued first
+   * (the first call possibly involves reverting the element order => a little overhead)
+   *
+   * \return Element that was removed
+   */
+  T PopFront()
+  {
+    return implementation.PopFront();
+  }
+
+  /*!
+   * Returns and removes the element from queue fragment that was enqueued last
+   * (the first call possibly involves reverting the element order => a little overhead)
+   *
+   * \return Element that was removed
+   */
+  T PopBack()
+  {
+    return implementation.PopBack();
+  }
+
+  /*!
+   * Returns and removes an element from the queue fragment
+   *
+   * \return Element that was removed
+   */
+  T PopAny()
+  {
+    return implementation.PopAny();
+  }
 
 //----------------------------------------------------------------------
 // Private fields and methods
 //----------------------------------------------------------------------
 private:
 
-  template <typename T, typename D, tQueueConcurrency CONCURRENCY, bool BOUNDED, bool QUEUEABLE_TYPE, bool QUEUEABLE_SINGLE_THREADED_TYPE>
-  friend class queue::tUniquePtrQueueImplementation;
-
-  /*!
-   * Pointer to next element in reuse queue... null if there's none
-   * Does not need to be volatile... because only critical for reader
-   * thread regarding terminator/null (and reader thread sets this himself)...
-   * writer changes may be delayed without problem
-   */
-  tQueueableSingleThreaded* next_single_threaded_queueable;
+  /*! queue fragment implementation */
+  tImplementation implementation;
 
 };
 

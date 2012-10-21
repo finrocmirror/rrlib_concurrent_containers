@@ -19,11 +19,11 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 //----------------------------------------------------------------------
-/*!\file    rrlib/concurrent_containers/tQueueable.cpp
+/*!\file    rrlib/concurrent_containers/queue/tQueuableImplementation.cpp
  *
  * \author  Max Reichardt
  *
- * \date    2012-09-24
+ * \date    2012-10-14
  *
  */
 //----------------------------------------------------------------------
@@ -53,6 +53,8 @@ namespace rrlib
 {
 namespace concurrent_containers
 {
+namespace queue
+{
 
 //----------------------------------------------------------------------
 // Forward declarations / typedefs / enums
@@ -61,28 +63,26 @@ namespace concurrent_containers
 //----------------------------------------------------------------------
 // Const values
 //----------------------------------------------------------------------
-tQueueable tQueueable::terminator(true);
 
 //----------------------------------------------------------------------
 // Implementation
 //----------------------------------------------------------------------
-
-//----------------------------------------------------------------------
-// tQueueable constructors
-//----------------------------------------------------------------------
-tQueueable::tQueueable() :
+tQueueableMost::tQueueableMost() :
   next_queueable(NULL)
-{
-}
+{}
 
-tQueueable::tQueueable(bool terminator) :
-  next_queueable(terminator ? this : NULL)
-{
-}
+tQueueableFull::tQueueableFull() :
+  queueable_pointer(NULL)
+{}
+
+tQueueableSingleThreaded::tQueueableSingleThreaded() :
+  next_single_threaded_queueable(NULL)
+{}
 
 
 //----------------------------------------------------------------------
 // End of namespace declaration
 //----------------------------------------------------------------------
+}
 }
 }

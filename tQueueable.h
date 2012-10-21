@@ -29,8 +29,8 @@
  *
  * \b tQueueable
  *
- * This is the base class of queueable objects.
- * It contains the pointer to the next element in singly-linked queue.
+ * This is the base class of queueable objects that are to be used in intrusive queues.
+ * It typically contains the pointer to the next element in a singly-linked queue.
  */
 //----------------------------------------------------------------------
 #ifndef __rrlib__concurrent_containers__tQueueable_h__
@@ -39,13 +39,12 @@
 //----------------------------------------------------------------------
 // External includes (system with <>, local with "")
 //----------------------------------------------------------------------
-#include <boost/utility.hpp>
+#include <boost/noncopyable.hpp>
 #include <atomic>
 
 //----------------------------------------------------------------------
 // Internal includes with ""
 //----------------------------------------------------------------------
-#include "rrlib/concurrent_containers/tQueueConcurrency.h"
 
 //----------------------------------------------------------------------
 // Namespace declaration
@@ -58,85 +57,71 @@ namespace concurrent_containers
 //----------------------------------------------------------------------
 // Forward declarations / typedefs / enums
 //----------------------------------------------------------------------
-namespace queue
+
+/*!
+ * Determines in which queues queueable element can be used.
+ * Can also make a difference with respect to computational overhead
+ * and memory consumption.
+ */
+enum tQueueability
 {
-template <typename T, typename D, tQueueConcurrency CONCURRENCY, bool BOUNDED, bool QUEUEABLE_TYPE, bool QUEUEABLE_SINGLE_THREADED_TYPE>
-class tUniquePtrQueueImplementation;
+  /*!
+   * Object can be used in single-threaded only - with much lower
+   * computational overhead than using an ordinary queueable object
+   * (has size of 1 pointer)
+   */
+  SINGLE_THREADED,
 
-template <typename T, typename D, bool CONCURRENT>
-class tFastUniquePtrQueueEnqueueImplementation;
+  /*!
+   * Object can be used in most queues.
+   * Currently, this excludes concurrent, bounded queues with tDequeueMode::ALL.
+   * (has size of 1 pointer)
+   */
+  MOST,
 
-template <typename T, typename D, bool CONCURRENT_ENQUEUE, bool CONCURRENT_DEQUEUE>
-class tFastUniquePtrQueueDequeueImplementation;
+  /*!
+   * Object can be used in most queues.
+   * Currently, this excludes concurrent, bounded queues with tDequeueMode::ALL.
+   * It has an additional single-threaded pointer that leads to higher
+   * computational efficiency in single-threaded queues and queue fragments
+   * (has size of 2 pointers (MOST + SINGLE_THREADED)
+   */
+  MOST_OPTIMIZED,
 
-template <typename T, typename D, bool FAST>
-class tUniquePtrBoundedDequeueImplementation;
+  /*!
+   * Object can be used in all queues
+   * (has size of 2 pointers)
+   */
+  FULL,
 
-template <typename T, typename D, bool CONCURRENT, bool FAST>
-class tUniquePtrBoundedEnqueueImplementation;
-}
+  /*!
+   * Object can be used in all queues.
+   * It has an additional single-threaded pointer that leads to higher
+   * computational efficiency in single-threaded queues and queue fragments
+   * (has size of 3 pointers (FULL + SINGLE_THREADED)
+   */
+  FULL_OPTIMIZED
+};
+
 
 //----------------------------------------------------------------------
 // Class declaration
 //----------------------------------------------------------------------
 //! Base class for queueable object
 /*!
- * This is the base class of queueable objects.
- * It contains the pointer to the next element in a singly-linked queue.
+ * This is the base class of queueable objects that are to be used in intrusive queues.
+ * It typically contains the pointer to the next element in a singly-linked queue.
  *
  * Any classes T derived from this class, can be used very efficiently
- * in queues of type tQueue<std::unique_ptr<T>, CONCURRENCY> - as they
+ * in queues of type tQueue<std::unique_ptr<T>, ...> - as they
  * are enqueued directly and do not need to be placed in nodes.
  *
- * If objects are used in single-threaded queues only, you should consider
- * deriving from tQueueableSingleThreaded instead - as this is more efficient.
- *
- * If objects are used in single-threaded queues also, you should consider
- * deriving from tQueueableSingleThreaded as well - as this is more efficient
- * (computationally, object size will slightly increase though).
+ * The public public interface is empty.
+ * (internals are not be used outside of queue implementations)
  */
+template <tQueueability QUEUEABILITY>
 class tQueueable : boost::noncopyable
 {
-//----------------------------------------------------------------------
-// Public methods and typedefs
-//----------------------------------------------------------------------
-public:
-
-  tQueueable();
-
-//----------------------------------------------------------------------
-// Private fields and methods
-//----------------------------------------------------------------------
-private:
-
-  template <typename T, typename D, tQueueConcurrency CONCURRENCY, bool BOUNDED, bool QUEUEABLE_TYPE, bool QUEUEABLE_SINGLE_THREADED_TYPE>
-  friend class queue::tUniquePtrQueueImplementation;
-
-  template <typename T, typename D, bool CONCURRENT>
-  friend class queue::tFastUniquePtrQueueEnqueueImplementation;
-
-  template <typename T, typename D, bool CONCURRENT_ENQUEUE, bool CONCURRENT_DEQUEUE>
-  friend class queue::tFastUniquePtrQueueDequeueImplementation;
-
-  template <typename T, typename D, bool FAST>
-  friend class queue::tUniquePtrBoundedDequeueImplementation;
-
-  template <typename T, typename D, bool CONCURRENT, bool FAST>
-  friend class queue::tUniquePtrBoundedEnqueueImplementation;
-
-  tQueueable(bool terminator);
-
-  /*!
-   * Pointer to next element in reuse queue... null if there's none
-   *
-   * Needs to be atomic - anything else would not really be clean
-   * (unfortunately, this really hurts performance - almost factor 10).
-   * Queue stress test fails with non-atomic pointer with multiple writer threads.
-   */
-  std::atomic<tQueueable*> next_queueable;
-
-  /*! Terminator (not null for efficiency reasons) */
-  static tQueueable terminator;
 };
 
 
@@ -146,5 +131,6 @@ private:
 }
 }
 
+#include "rrlib/concurrent_containers/queue/tQueueableImplementation.h"
 
 #endif

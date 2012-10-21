@@ -4,7 +4,6 @@
   <rrlib name="concurrent_containers_new">
     <sources>
       *.h
-      *.cpp
       queue/**
       policies/**
     </sources>
