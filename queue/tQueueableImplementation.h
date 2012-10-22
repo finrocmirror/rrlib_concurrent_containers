@@ -62,7 +62,7 @@ namespace queue
 // Implementation
 //----------------------------------------------------------------------
 
-class tQueueableMost : boost::noncopyable
+class __attribute__((aligned(8))) tQueueableMost : boost::noncopyable
 {
 //----------------------------------------------------------------------
 // Public methods and typedefs

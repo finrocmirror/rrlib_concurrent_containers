@@ -169,7 +169,11 @@ public:
   inline void Enqueue(tPointer && element)
   {
     uint max_len = max_length;
+#if (__GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ <= 6))
+    tTaggedPointer current_last = last.fetch_add(0);
+#else
     tTaggedPointer current_last = last.load();
+#endif
     assert(current_last.GetPointer() != element.get());
     while (true)
     {
