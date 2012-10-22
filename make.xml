@@ -27,4 +27,10 @@
     </sources>
   </testprogram>
   
+  <testprogram name="atomic_int64_stress_test" libs="pthread">
+    <sources>
+      test/atomic_int64_stress_test.cpp
+    </sources>
+  </testprogram>
+
 </targets>
