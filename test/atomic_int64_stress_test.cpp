@@ -69,7 +69,8 @@ void Test(uint64_t thread_no)
   uint64_t id = (thread_no << 32) | thread_no; // low and high int32 are identical
   for (uint i = 0; i < 0xFFFFFF; i++)
   {
-    uint64_t current_value = tested.load();
+    uint64_t current_value = tested.load();  // produces torn reads on 32-bit Ubuntu 12.04
+    //uint64_t current_value = tested.fetch_add(0);  // this works perfectly
     do
     {
       assert((current_value >> 32) == (current_value & 0xFFFFFFFF) && "detected torn write"); // check that low and high int32 are identical
