@@ -40,6 +40,7 @@
 //----------------------------------------------------------------------
 // External includes (system with <>, local with "")
 //----------------------------------------------------------------------
+#include "rrlib/logging/messages.h"
 
 //----------------------------------------------------------------------
 // Internal includes with ""
@@ -68,11 +69,12 @@ enum class tAllowDuplicates
 };
 
 /*!
- * Provides the default "null element" zero for sets
+ * Provides the default "null element" for sets
  */
+template <typename T>
 struct NullElementDefault
 {
-  enum { cNULL_ELEMENT = 0 };
+  static constexpr T cNULL_ELEMENT = 0;
 };
 
 
@@ -97,31 +99,33 @@ struct NullElementDefault
  * \tparam TStoragePolicy Determines list implementation and which calls may be executed concurrently.
  * \tparam TNullElement Element that marks empty "slots" in backend. It may not be a added to set.
  *                      Type needs constant 'cNULL_ELEMENT' that can be casted to type T.
+ * \tparam DEREFERENCING_ITERATOR If true, iterator returns dereferenced type T
+ *                                (naturally, only works with types that can be dereferenced such as pointer)
  */
-template <typename T, tAllowDuplicates ALLOW_DUPLICATES, typename TMutex, class TStoragePolicy, typename TNullElement = NullElementDefault>
-class tSet : TStoragePolicy::template tInstance<T, ALLOW_DUPLICATES, TMutex, TNullElement>
-{
+template < typename T, tAllowDuplicates ALLOW_DUPLICATES, typename TMutex, class TStoragePolicy,
+         bool DEREFERENCING_ITERATOR = false, typename TNullElement = NullElementDefault<T >>
+         class tSet : TStoragePolicy::template tInstance<T, ALLOW_DUPLICATES, TMutex, TNullElement, DEREFERENCING_ITERATOR>
+         {
 
-  typedef typename TStoragePolicy::template tInstance<T, ALLOW_DUPLICATES, TMutex, TNullElement> tStoragePolicy;
+           typedef typename TStoragePolicy::template tInstance<T, ALLOW_DUPLICATES, TMutex, TNullElement, DEREFERENCING_ITERATOR> tStoragePolicy;
 
 //----------------------------------------------------------------------
 // Public methods and typedefs
 //----------------------------------------------------------------------
-  public:
+           public:
 
-  /*!
-   * Iterator types to iterate over the list's elements.
-   * Input iterators.
-   */
-  typedef typename tStoragePolicy::tIterator tIterator;
-  typedef typename tStoragePolicy::tConstIterator tConstIterator;
+           /*!
+            * Iterator types to iterate over the list's elements.
+            * Input iterators.
+            */
+           typedef typename tStoragePolicy::tConstIterator tConstIterator;
 
-  /*!
-   * Adds element to this set (unless element is already in the set and duplicates are not allowed)
-   *
-   * \param element Element to add
-   */
-  void Add(const T& element)
+           /*!
+            * Adds element to this set (unless element is already in the set and duplicates are not allowed)
+            *
+            * \param element Element to add
+            */
+           void Add(const T& element)
 {
   if (element == static_cast<T>(TNullElement::cNULL_ELEMENT))
   {
@@ -142,22 +146,30 @@ class tSet : TStoragePolicy::template tInstance<T, ALLOW_DUPLICATES, TMutex, TNu
  *       ...
  *   }
  */
-tIterator Begin()
-{
-  return tStoragePolicy::Begin();
-}
 tConstIterator Begin() const
 {
   return tStoragePolicy::Begin();
 }
 
 /*!
+ * Removes all elements from set
+ */
+void Clear()
+{
+  return tStoragePolicy::Clear();
+}
+
+/*!
+ * \return True if set is empty
+ */
+bool Empty() const
+{
+  return tStoragePolicy::Empty();
+}
+
+/*!
  * \return An iterator to iterate over this set's elements pointing to the past-the-end element.
  */
-tIterator End()
-{
-  return tStoragePolicy::End();
-}
 tConstIterator End() const
 {
   return tStoragePolicy::End();
@@ -169,7 +181,7 @@ tConstIterator End() const
  * \param position Iterator pointing to element to be removed
  * \return Iterator pointing to the location of the element that followed erased element possibly list end)
  */
-tIterator Remove(tIterator position)
+tConstIterator Remove(tConstIterator position)
 {
   return tStoragePolicy::Remove(position);
 }
@@ -195,7 +207,7 @@ void Remove(const T& element)
 //----------------------------------------------------------------------
 private:
 
-};
+         };
 
 //----------------------------------------------------------------------
 // End of namespace declaration

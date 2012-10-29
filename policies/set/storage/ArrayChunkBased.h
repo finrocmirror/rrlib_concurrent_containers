@@ -78,7 +78,6 @@ namespace storage
  * if set size does not exceed the initial size often.
  *
  * \tparam INITIAL_CHUNK_SIZE Entries/slots in initial chunk
- * \tparam SECOND_CHUNK_SIZE Entries/slots in first appended chunk
  * \tparam FURTHER_CHUNKS_SIZE Entries/slots in any further appended chunks
  * \tparam CHUNK_SIZE_INCREASE_FACTOR Second appended chunk will have a size of SECOND_CHUNKS_SIZE * CHUNK_SIZE_INCREASE_FACTOR.
  *                                    The third chunk's size will be increased by this factor again.
@@ -87,42 +86,50 @@ namespace storage
  *                         However, this option is provided so that tSet can conveniently
  *                         be used in templates that might sometimes be used a single-threaded context.
  */
-template <size_t INITIAL_CHUNK_SIZE, size_t SECOND_CHUNK_SIZE, size_t FURTHER_CHUNKS_SIZE, bool SINGLE_THREADED = false>
+template <size_t INITIAL_CHUNK_SIZE, size_t FURTHER_CHUNKS_SIZE, bool SINGLE_THREADED = false>
 struct ArrayChunkBased
 {
 
-  template <typename T, tAllowDuplicates ALLOW_DUPLICATES, typename TMutex, typename TNullElement>
+  /*! Helper struct to realize optional iterator dereferencing */
+  template <typename T, bool DEREFERENCE>
+  struct IteratorCustomization
+  {
+    typedef const T tReturnType;
+  };
+
+  template <typename T>
+  struct IteratorCustomization<T, true>
+  {
+    typedef typename std::remove_pointer<T>::type tReturnType;
+  };
+
+  template <typename T, tAllowDuplicates ALLOW_DUPLICATES, typename TMutex, typename TNullElement, bool DEREFERENCING_ITERATOR>
   class tInstance : public TMutex
   {
     /*! The set storage is a linked list of array chunks */
-    template <size_t SIZE, bool INITIAL = false>
+    template <size_t SIZE>
     struct tArrayChunk;
 
-    typedef tArrayChunk<INITIAL_CHUNK_SIZE, true> tFirstChunk;
-    typedef tArrayChunk<SECOND_CHUNK_SIZE> tSecondChunk;
+    typedef tArrayChunk<INITIAL_CHUNK_SIZE> tFirstChunk;
     typedef tArrayChunk<FURTHER_CHUNKS_SIZE> tFurtherChunk;
-    typedef typename std::conditional<SINGLE_THREADED, tSecondChunk*, std::atomic<tSecondChunk*>>::type tSecondChunkPointer;
     typedef typename std::conditional<SINGLE_THREADED, tFurtherChunk*, std::atomic<tFurtherChunk*>>::type tFurtherChunkPointer;
     typedef typename std::conditional<SINGLE_THREADED, T, std::atomic<T>>::type tArrayElement;
     typedef typename std::conditional<SINGLE_THREADED, size_t, std::atomic<size_t>>::type tSize;
 
-    template <size_t SIZE, bool INITIAL>
+    template <size_t SIZE>
     struct tArrayChunk
     {
-      typedef typename std::conditional<INITIAL, tSecondChunk, tFurtherChunk>::type tNextChunk;
-      typedef typename std::conditional<INITIAL, tSecondChunkPointer, tFurtherChunkPointer>::type tNextChunkPointer;
-
       /*! Buffers in array chunk. NULL for buffers that are in use. */
       std::array<tArrayElement, SIZE> buffers;
 
       /*! Pointer to next chunk -> linked-list */
-      tNextChunkPointer next_chunk;
+      tFurtherChunkPointer next_chunk;
 
       static_assert(sizeof(buffers) % sizeof(next_chunk) == 0, "Please choose a chunk size that does not waste memory");
 
       ~tArrayChunk()
       {
-        tNextChunk* next = next_chunk;
+        tFurtherChunk* next = next_chunk;
         delete next;
       }
     };
@@ -133,10 +140,7 @@ struct ArrayChunkBased
   public:
 
     // Iterator types
-    template <bool CONST>
-    class tIteratorExternal;
-    typedef tIteratorExternal<false> tIterator;
-    typedef tIteratorExternal<true> tConstIterator;
+    class tConstIterator;
 
     tInstance() : size(0) {}
 
@@ -149,11 +153,11 @@ struct ArrayChunkBased
       tIteratorInternal<false> it(*this);
       for (; it != tIteratorInternal<false>(); ++it)
       {
-        if (ALLOW_DUPLICATES == tAllowDuplicates::NO && (*it) == element)
+        if (ALLOW_DUPLICATES == tAllowDuplicates::NO && it.current_element == element)
         {
           return;
         }
-        else if ((!first_free) && (*it) == TNullElement::cNULL_ELEMENT)
+        else if ((!first_free) && it.current_element == TNullElement::cNULL_ELEMENT)
         {
           first_free = it.current_array_entry;
           if (ALLOW_DUPLICATES != tAllowDuplicates::NO)
@@ -177,45 +181,45 @@ struct ArrayChunkBased
         }
         else
         {
-          if (it.initial_chunk)
-          {
-            tSecondChunk* new_chunk = new tSecondChunk();
-            *it.second_chunk = new_chunk;
-            new_chunk->buffers[0] = element;
-          }
-          else
-          {
-            tFurtherChunk* new_chunk = new tFurtherChunk();
-            *it.next_chunk = new_chunk;
-            new_chunk->buffers[0] = element;
-          }
+          tFurtherChunk* new_chunk = new tFurtherChunk();
+          *it.next_chunk = new_chunk;
+          new_chunk->buffers[0] = element;
         }
         size++; // important: do this last
       }
     }
 
-    tIterator Begin()
-    {
-      return tIterator(*this);
-    }
     tConstIterator Begin() const
     {
       return tConstIterator(*this);
     }
 
-    tIterator End()
+    void Clear()
     {
-      return tIterator();
+      rrlib::thread::tLock lock(*this);
+      tIteratorInternal<false> it(*this);
+      for (; it != tIteratorInternal<false>(); ++it)
+      {
+        (*it.current_array_entry) = TNullElement::cNULL_ELEMENT;
+      }
+      size = 0;
     }
+
+    bool Empty() const
+    {
+      return size == 0;
+    }
+
     tConstIterator End() const
     {
       return tConstIterator();
     }
 
-    tIterator Remove(tIterator position)
+    tConstIterator Remove(tConstIterator position)
     {
       rrlib::thread::tLock lock(*this);
-      *(position.current_array_entry) = TNullElement::cNULL_ELEMENT;
+      tArrayElement* current_array_entry = const_cast<tArrayElement*>(position.current_array_entry);
+      *(current_array_entry) = TNullElement::cNULL_ELEMENT;
       ++position;
       if (position == End())
       {
@@ -247,12 +251,12 @@ struct ArrayChunkBased
       size_t free_slots_at_back = 0;
       for (; it != tIteratorInternal<false>(); ++it)
       {
-        if ((*it) == element)
+        if (it.current_element == element)
         {
-          (*it) = TNullElement::cNULL_ELEMENT;
+          (*it.current_array_entry) = TNullElement::cNULL_ELEMENT;
           free_slots_at_back++;
         }
-        else if ((*it) == TNullElement::cNULL_ELEMENT)
+        else if (it.current_element == TNullElement::cNULL_ELEMENT)
         {
           free_slots_at_back++;
         }
@@ -269,20 +273,27 @@ struct ArrayChunkBased
 
     /*! Iterator base implementation */
     template <bool CONST>
-    class tIteratorImplementation : public std::iterator<std::forward_iterator_tag, T, size_t>
+    class tIteratorImplementation : public std::iterator<std::input_iterator_tag, typename IteratorCustomization<T, DEREFERENCING_ITERATOR>::tReturnType, size_t>
     {
-      typedef std::iterator<std::forward_iterator_tag, T, size_t> tBase;
+      typedef std::iterator<std::input_iterator_tag, typename IteratorCustomization<T, DEREFERENCING_ITERATOR>::tReturnType, size_t> tBase;
 
     public:
 
       // Operators needed for C++ Input Iterator
 
-      inline typename tBase::reference operator*()
+      template <bool DEREF = DEREFERENCING_ITERATOR>
+      inline typename std::enable_if < !DEREF, typename tBase::reference >::type operator*() const
       {
         assert(remaining);
         return current_element;
       }
-      inline typename tBase::pointer operator->()
+      template <bool DEREF = DEREFERENCING_ITERATOR>
+      inline typename std::enable_if<DEREF, typename tBase::reference>::type operator*() const
+      {
+        assert(remaining);
+        return *current_element;
+      }
+      inline typename tBase::pointer operator->() const
       {
         return &(operator*());
       }
@@ -297,14 +308,7 @@ struct ArrayChunkBased
         }
         else if (remaining)
         {
-          if (SECOND_CHUNK_SIZE != FURTHER_CHUNKS_SIZE && initial_chunk)
-          {
-            *this = tIteratorImplementation(**second_chunk, remaining);
-          }
-          else
-          {
-            *this = tIteratorImplementation(**next_chunk, remaining);
-          }
+          *this = tIteratorImplementation(**next_chunk, remaining);
         }
         else
         {
@@ -330,25 +334,23 @@ struct ArrayChunkBased
 
     protected:
 
-      template <size_t SIZE, bool INITIAL>
-      tIteratorImplementation(tArrayChunk<SIZE, INITIAL>& chunk, size_t set_size) :
+      template <size_t SIZE>
+      tIteratorImplementation(tArrayChunk<SIZE>& chunk, size_t set_size) :
         current_array_entry(set_size ? (&chunk.buffers[0]) : NULL),
         past_last_array_entry((&chunk.buffers[std::min(SIZE, set_size)])),
         remaining(set_size),
-        next_chunk_raw(&chunk.next_chunk),
-        initial_chunk(INITIAL),
-        current_element(remaining ? static_cast<T>(*current_array_entry) : TNullElement::cNULL_ELEMENT)
+        next_chunk(&chunk.next_chunk),
+        current_element(remaining ? static_cast<T>(*current_array_entry) : static_cast<T>(TNullElement::cNULL_ELEMENT))
       {
       }
 
-      template <size_t SIZE, bool INITIAL>
-      tIteratorImplementation(const tArrayChunk<SIZE, INITIAL>& chunk, size_t set_size) :
+      template <size_t SIZE>
+      tIteratorImplementation(const tArrayChunk<SIZE>& chunk, size_t set_size) :
         current_array_entry(set_size ? (&chunk.buffers[0]) : NULL),
         past_last_array_entry((&chunk.buffers[std::min(SIZE, set_size)])),
         remaining(set_size),
-        next_chunk_raw(&chunk.next_chunk),
-        initial_chunk(INITIAL),
-        current_element(remaining ? static_cast<T>(*current_array_entry) : TNullElement::cNULL_ELEMENT)
+        next_chunk(&chunk.next_chunk),
+        current_element(remaining ? static_cast<T>(*current_array_entry) : static_cast<T>(TNullElement::cNULL_ELEMENT))
       {
       }
 
@@ -357,7 +359,6 @@ struct ArrayChunkBased
         past_last_array_entry(NULL),
         remaining(0),
         next_chunk(),
-        initial_chunk(),
         current_element(TNullElement::cNULL_ELEMENT)
       {
       }
@@ -365,6 +366,7 @@ struct ArrayChunkBased
     private:
 
       friend class tInstance;
+      friend class tConstIterator;
 
       /*! Pointer to current element */
       typename std::conditional<CONST, const tArrayElement*, tArrayElement*>::type current_array_entry;
@@ -372,23 +374,11 @@ struct ArrayChunkBased
       /*! Last element in array chunk */
       typename std::conditional<CONST, const tArrayElement*, tArrayElement*>::type past_last_array_entry;
 
-    protected:
-
       /*! Remaining elements in set (including current element => 0 means that iterator has passed the end) */
       size_t remaining;
 
-    private:
-
       /*! Pointer to next chunk */
-      union
-      {
-        const void* next_chunk_raw;
-        tFurtherChunkPointer* next_chunk;
-        tSecondChunkPointer* second_chunk;
-      };
-
-      /*! Initial chunk? */
-      bool initial_chunk;
+      typename std::conditional<CONST, const tFurtherChunkPointer*, tFurtherChunkPointer*>::type next_chunk;
 
       /*! Current element */
       T current_element;
@@ -408,32 +398,31 @@ struct ArrayChunkBased
     };
 
     /*! External iterator (for use by users of set) - excludes null entries */
-    template <bool CONST>
-    class tIteratorExternal : public tIteratorInternal<CONST>
+    class tConstIterator : public tIteratorInternal<true>
     {
     public:
-      tIteratorExternal(typename std::conditional<CONST, const tInstance, tInstance>::type& instance) : tIteratorInternal<CONST>(instance)
+      tConstIterator(const tInstance& instance) : tIteratorInternal<true>(instance)
       {
-        if (**this == TNullElement::cNULL_ELEMENT)
+        if (this->current_element == TNullElement::cNULL_ELEMENT)
         {
           operator++();
         }
       }
 
-      tIteratorExternal() : tIteratorInternal<CONST>() {}
+      tConstIterator() : tIteratorInternal<true>() {}
 
-      inline tIteratorExternal& operator++()
+      inline tConstIterator& operator++()
       {
         do
         {
-          tIteratorInternal<CONST>::operator++();
+          tIteratorInternal<true>::operator++();
         }
-        while (this->remaining && **this == TNullElement::cNULL_ELEMENT);
+        while (this->remaining && this->current_element == TNullElement::cNULL_ELEMENT);
         return *this;
       }
-      inline tIteratorExternal operator ++ (int)
+      inline tConstIterator operator ++ (int)
       {
-        tIteratorExternal temp(*this);
+        tConstIterator temp(*this);
         operator++();
         return temp;
       }

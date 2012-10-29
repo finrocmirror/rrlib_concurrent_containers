@@ -108,20 +108,20 @@ void TestSet(TSet& set)
 int main(int, char**)
 {
   {
-    RRLIB_LOG_PRINT(USER, "Testing tSet<int, tAllowDuplicates::NO, rrlib::thread::tMutex, set::storage::ArrayChunkBased<2, 2, 6>>");
-    tSet<int, tAllowDuplicates::NO, rrlib::thread::tMutex, set::storage::ArrayChunkBased<2, 2, 6>> set;
+    RRLIB_LOG_PRINT(USER, "Testing tSet<int, tAllowDuplicates::NO, rrlib::thread::tMutex, set::storage::ArrayChunkBased<2, 6>>");
+    tSet<int, tAllowDuplicates::NO, rrlib::thread::tMutex, set::storage::ArrayChunkBased<2, 6>> set;
     TestSet(set);
   }
 
   {
-    RRLIB_LOG_PRINT(USER, "Testing tSet<int, tAllowDuplicates::NO, rrlib::thread::tMutex, set::storage::ArrayChunkBased<2, 2, 6, true>>");
-    tSet<int, tAllowDuplicates::NO, rrlib::thread::tMutex, set::storage::ArrayChunkBased<2, 2, 6, true>> set;
+    RRLIB_LOG_PRINT(USER, "Testing tSet<int, tAllowDuplicates::NO, rrlib::thread::tMutex, set::storage::ArrayChunkBased<2, 6, true>>");
+    tSet<int, tAllowDuplicates::NO, rrlib::thread::tMutex, set::storage::ArrayChunkBased<2, 6, true>> set;
     TestSet(set);
   }
 
   {
-    RRLIB_LOG_PRINT(USER, "Testing tSet<int, tAllowDuplicates::YES, rrlib::thread::tNoMutex, set::storage::ArrayChunkBased<4, 6, 8>>");
-    tSet<int, tAllowDuplicates::YES, rrlib::thread::tNoMutex, set::storage::ArrayChunkBased<4, 6, 8>> set;
+    RRLIB_LOG_PRINT(USER, "Testing tSet<int, tAllowDuplicates::YES, rrlib::thread::tNoMutex, set::storage::ArrayChunkBased<4, 8>>");
+    tSet<int, tAllowDuplicates::YES, rrlib::thread::tNoMutex, set::storage::ArrayChunkBased<4, 8>> set;
     TestSet(set);
   }
 
