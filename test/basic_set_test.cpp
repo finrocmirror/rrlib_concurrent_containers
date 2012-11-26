@@ -67,6 +67,12 @@ using namespace rrlib::concurrent_containers;
 template <typename TSet>
 void TestSet(TSet& set)
 {
+  RRLIB_LOG_PRINT(USER, " Iterating over elements:");
+  for (auto it = set.Begin(); it != set.End(); ++it)
+  {
+    RRLIB_LOG_PRINT(USER, "  ", *it);
+  }
+
   RRLIB_LOG_PRINT(USER, " Adding twenty elements: 1 to 20");
   for (int i = 1; i <= 20; ++i)
   {

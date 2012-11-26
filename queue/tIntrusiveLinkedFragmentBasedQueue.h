@@ -222,6 +222,11 @@ public:
     }
   }
 
+  int GetMaxLength() const
+  {
+    return this->max_length;
+  }
+
   void SetMaxLength(int max_length)
   {
     if (max_length <= 0 || max_length > 500000)
@@ -348,6 +353,11 @@ public:
         return;
       }
     }
+  }
+
+  int GetMaxLength() const
+  {
+    return this->max_length;
   }
 
   void SetMaxLength(int max_length)

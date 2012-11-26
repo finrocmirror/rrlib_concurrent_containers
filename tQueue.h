@@ -162,6 +162,15 @@ public:
   }
 
   /*!
+   * If queue is boundable, the maximum queue length can be retrieved with this method.
+   */
+  template <bool ENABLE = BOUNDED>
+  inline typename std::enable_if<ENABLE, int>::type GetMaxLength() const
+  {
+    return implementation.GetMaxLength();
+  }
+
+  /*!
    * If queue is boundable, the maximum queue length can be set with this method.
    * (Should not be called by multiple threads concurrently in order to avoid strange side effects)
    *

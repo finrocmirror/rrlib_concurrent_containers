@@ -403,7 +403,7 @@ struct ArrayChunkBased
     public:
       tConstIterator(const tInstance& instance) : tIteratorInternal<true>(instance)
       {
-        if (this->current_element == TNullElement::cNULL_ELEMENT)
+        if (this->current_element == TNullElement::cNULL_ELEMENT && this->remaining)
         {
           operator++();
         }
