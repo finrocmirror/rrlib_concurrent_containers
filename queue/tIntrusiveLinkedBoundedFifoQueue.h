@@ -368,7 +368,7 @@ public:
     if (threads_enqueuing_tmp == 0 && (!this_ptr))
     {
       // all threads completed setting 'next' up to current stamp
-      TryDequeueingElementsOverBounds(new_last.GetStamp(), max_length, 10);
+      this->TryDequeueingElementsOverBounds(new_last.GetStamp(), max_length, 10);
     }
   }
 
@@ -431,7 +431,7 @@ public:
     prev->next_queueable = element;
 
     // dequeue some elements?
-    TryDequeueingElementsOverBounds(last.GetStamp(), max_length, 10);
+    this->TryDequeueingElementsOverBounds(last.GetStamp(), max_length, 10);
   }
 
   int GetLastStamp()
@@ -459,7 +459,7 @@ public:
 
   inline void Enqueue(std::unique_ptr<T, D> && element)
   {
-    EnqueueRaw(element.get());
+    this->EnqueueRaw(element.get());
     element.release();
   }
 
@@ -478,7 +478,7 @@ public:
     int old_length = this->max_length.exchange(max_length);
     if (max_length < old_length)
     {
-      TryDequeueingElementsOverBounds(this->GetLastStamp(), max_length, old_length - max_length);
+      this->TryDequeueingElementsOverBounds(this->GetLastStamp(), max_length, old_length - max_length);
     }
   }
 };
