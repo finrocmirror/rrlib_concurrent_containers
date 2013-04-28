@@ -187,6 +187,15 @@ public:
     implementation.SetMaxLength(max_length);
   }
 
+  /*!
+   * \return Number of elements in queue (currently only available for bounded, single-threaded queues)
+   */
+  template < bool ENABLE = BOUNDED && (CONCURRENCY == tConcurrency::NONE) >
+  typename std::enable_if<ENABLE, int>::type Size()
+  {
+    return implementation.Size();
+  }
+
 //----------------------------------------------------------------------
 // Private fields and methods
 //----------------------------------------------------------------------

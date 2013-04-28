@@ -234,9 +234,14 @@ public:
     }
   }
 
+  int GetMaxLength() const
+  {
+    return max_length;
+  }
+
   void SetMaxLength(int max_length)
   {
-    if (max_length <= 0)
+    if (max_length < 0)
     {
       RRLIB_LOG_PRINT(ERROR, "Invalid queue length: ", max_length, ". Ignoring.");
       return;
@@ -246,6 +251,11 @@ public:
     {
       Dequeue();
     }
+  }
+
+  int Size()
+  {
+    return element_count;
   }
 
 private:
