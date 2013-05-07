@@ -19,7 +19,7 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 //----------------------------------------------------------------------
-/*!\file    rrlib/concurrent_containers/queue/tQueuableImplementation.cpp
+/*!\file    rrlib/concurrent_containers/queue/tQueueableImplementation.cpp
  *
  * \author  Max Reichardt
  *
