@@ -62,7 +62,7 @@ namespace queue
 // Implementation
 //----------------------------------------------------------------------
 
-class __attribute__((aligned(8))) tQueueableMost : boost::noncopyable
+class __attribute__((aligned(8))) tQueueableMost : private rrlib::util::tNoncopyable
 {
 //----------------------------------------------------------------------
 // Public methods and typedefs
@@ -112,7 +112,7 @@ public:
 };
 
 
-class tQueueableSingleThreaded : boost::noncopyable
+class tQueueableSingleThreaded : private rrlib::util::tNoncopyable
 {
 
 //----------------------------------------------------------------------

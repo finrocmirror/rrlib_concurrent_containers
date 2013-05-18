@@ -72,7 +72,7 @@ class tIntrusiveLinkedBoundedFifoQueue;
  * Dequeue implementation for concurrent bounded queues (non-'FAST')
  */
 template <typename T, typename D, bool FAST>
-class tIntrusiveLinkedBoundedDequeueImplementation : public boost::noncopyable
+class tIntrusiveLinkedBoundedDequeueImplementation : private rrlib::util::tNoncopyable
 {
 public:
 
@@ -209,7 +209,7 @@ private:
  * Dequeue implementation for concurrent bounded queues ('FAST')
  */
 template <typename T, typename D>
-class tIntrusiveLinkedBoundedDequeueImplementation<T, D, true> : public boost::noncopyable
+class tIntrusiveLinkedBoundedDequeueImplementation<T, D, true> : private rrlib::util::tNoncopyable
 {
 public:
 

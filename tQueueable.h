@@ -39,7 +39,7 @@
 //----------------------------------------------------------------------
 // External includes (system with <>, local with "")
 //----------------------------------------------------------------------
-#include <boost/noncopyable.hpp>
+#include "rrlib/util/tNoncopyable.h"
 #include <atomic>
 
 //----------------------------------------------------------------------
@@ -120,7 +120,7 @@ enum tQueueability
  * (internals are not be used outside of queue implementations)
  */
 template <tQueueability QUEUEABILITY>
-class tQueueable : boost::noncopyable
+class tQueueable : private rrlib::util::tNoncopyable
 {
 };
 

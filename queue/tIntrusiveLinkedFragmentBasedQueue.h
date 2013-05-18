@@ -68,7 +68,7 @@ namespace queue
  * (default non-bounded implementation)
  */
 template <typename T, typename D, tConcurrency CONCURRENCY, bool BOUNDED>
-class tIntrusiveLinkedFragmentBasedQueue : boost::noncopyable
+class tIntrusiveLinkedFragmentBasedQueue : private rrlib::util::tNoncopyable
 {
 
 //----------------------------------------------------------------------
@@ -126,7 +126,7 @@ private:
  * This is the 32 bit implementation
  */
 template <typename T, typename D, tConcurrency CONCURRENCY>
-class tIntrusiveLinkedFragmentBasedQueue<T, D, CONCURRENCY, true> : boost::noncopyable
+class tIntrusiveLinkedFragmentBasedQueue<T, D, CONCURRENCY, true> : private rrlib::util::tNoncopyable
 {
   static_assert(std::is_base_of<tQueueableFull, T>::value, "T needs to be derived from tQueueable<FULL> or tQueueable<FULL_OPTIMIZED> for this kind of queue.");
 
@@ -261,7 +261,7 @@ private:
  * 64 bit implementation
  */
 template <typename T, typename D, tConcurrency CONCURRENCY>
-class tIntrusiveLinkedFragmentBasedQueue<T, D, CONCURRENCY, true> : boost::noncopyable
+class tIntrusiveLinkedFragmentBasedQueue<T, D, CONCURRENCY, true> : private rrlib::util::tNoncopyable
 {
   static_assert(std::is_base_of<tQueueableFull, T>::value, "T needs to be derived from tQueueable<FULL> or tQueueable<FULL_OPTIMIZED> for this kind of queue.");
 

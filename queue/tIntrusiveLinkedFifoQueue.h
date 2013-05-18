@@ -73,7 +73,7 @@ class tIntrusiveLinkedFifoQueue
  * Base class for concurrent non-bounded enqueueing: Single-threaded implementation
  */
 template <typename T, typename D, bool CONCURRENT>
-class tFastIntrusiveEnqueueImplementation : boost::noncopyable
+class tFastIntrusiveEnqueueImplementation : private rrlib::util::tNoncopyable
 {
 public:
 
@@ -121,7 +121,7 @@ private:
  * Base class for concurrent non-bounded enqueueing: Concurrent implementation
  */
 template <typename T, typename D>
-class tFastIntrusiveEnqueueImplementation<T, D, true> : boost::noncopyable
+class tFastIntrusiveEnqueueImplementation<T, D, true> : private rrlib::util::tNoncopyable
 {
 public:
 

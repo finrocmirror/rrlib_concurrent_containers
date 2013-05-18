@@ -68,7 +68,7 @@ namespace concurrent_containers
  * \tparam T Enqueued elements. Identical, to parameter T of tQueue that fragment is obtained from.
  */
 template <typename T>
-class tQueueFragment : boost::noncopyable
+class tQueueFragment : private rrlib::util::tNoncopyable
 {
   typedef queue::tQueueFragmentImplementation<T> tImplementation;
 

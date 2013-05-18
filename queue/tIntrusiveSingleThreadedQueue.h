@@ -133,7 +133,7 @@ private:
  * Single threaded implementation for tQueueable
  */
 template <typename T, typename D>
-class tBasicIntrusiveSingleThreadedQueue<T, D, false> : boost::noncopyable
+class tBasicIntrusiveSingleThreadedQueue<T, D, false> : private rrlib::util::tNoncopyable
 {
 public:
 

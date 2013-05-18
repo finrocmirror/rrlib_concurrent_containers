@@ -39,7 +39,7 @@
 //----------------------------------------------------------------------
 // External includes (system with <>, local with "")
 //----------------------------------------------------------------------
-#include <boost/noncopyable.hpp>
+#include "rrlib/util/tNoncopyable.h"
 #include <memory>
 
 //----------------------------------------------------------------------
@@ -73,7 +73,7 @@ class tIntrusiveQueueFragment
 {
 };
 
-class tIntrusiveQueueFragmentQueueable : boost::noncopyable
+class tIntrusiveQueueFragmentQueueable : private rrlib::util::tNoncopyable
 {
 //----------------------------------------------------------------------
 // Public methods and typedefs
@@ -209,7 +209,7 @@ private:
   tQueueableMost* to_delete;
 };
 
-class tIntrusiveQueueFragmentQueueableSingleThreaded : boost::noncopyable
+class tIntrusiveQueueFragmentQueueableSingleThreaded : private rrlib::util::tNoncopyable
 {
 //----------------------------------------------------------------------
 // Public methods and typedefs
