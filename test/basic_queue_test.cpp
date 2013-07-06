@@ -183,13 +183,13 @@ void TestQueue()
   typedef ::tTestType<QA> tTestType;
   RRLIB_LOG_PRINTF(USER, "Testing tQueue<std::unique_ptr<tTestType>, tConcurrency::%s, tDequeueMode::%s, %d> with tQueueable<%s>",
                    make_builder::GetEnumString(CONCURRENCY), make_builder::GetEnumString(DQMODE), MAX_QUEUE_LENGTH, make_builder::GetEnumString(QA));
-  typedef tQueue<std::unique_ptr<tTestType>, CONCURRENCY, DQMODE, MAX_QUEUE_LENGTH> tQueueType;
-  typedef typename tRefQueueType<tTestType, tQueueType::cMINIMUM_ELEMENTS_IN_QEUEUE, MAX_QUEUE_LENGTH>::type tRefQueueType;
+  typedef tQueue < std::unique_ptr<tTestType>, CONCURRENCY, DQMODE, MAX_QUEUE_LENGTH != 0 > tQueueType;
+  typedef typename tRefQueueType < tTestType, tQueueType::cMINIMUM_ELEMENTS_IN_QEUEUE, MAX_QUEUE_LENGTH != 0 >::type tRefQueueType;
 
   tQueueType q;
-  tMaxQueueLength<MAX_QUEUE_LENGTH>::Set(q, MAX_QUEUE_LENGTH);
+  tMaxQueueLength < MAX_QUEUE_LENGTH != 0 >::Set(q, MAX_QUEUE_LENGTH);
   tRefQueueType ref_q;
-  tMaxQueueLength<MAX_QUEUE_LENGTH>::Set(ref_q, MAX_QUEUE_LENGTH);
+  tMaxQueueLength < MAX_QUEUE_LENGTH != 0 >::Set(ref_q, MAX_QUEUE_LENGTH);
 
   RRLIB_LOG_PRINT(USER, " Dequeueing two elements:");
   for (int i = 0; i < 2; i++)
@@ -247,10 +247,10 @@ void TestFragmentQueue()
   typedef ::tTestType<QA> tTestType;
   RRLIB_LOG_PRINTF(USER, "Testing tQueue<std::unique_ptr<tTestType>, tConcurrency::%s, tDequeueMode::ALL, %d> with tQueueable<%s>",
                    make_builder::GetEnumString(CONCURRENCY), MAX_QUEUE_LENGTH, make_builder::GetEnumString(QA));
-  tQueue<std::unique_ptr<tTestType>, CONCURRENCY, tDequeueMode::ALL, MAX_QUEUE_LENGTH> q;
-  tMaxQueueLength<MAX_QUEUE_LENGTH>::Set(q, MAX_QUEUE_LENGTH);
-  tQueue<std::unique_ptr<tTestType>, tConcurrency::NONE, tDequeueMode::ALL, MAX_QUEUE_LENGTH> ref_q;
-  tMaxQueueLength<MAX_QUEUE_LENGTH>::Set(ref_q, MAX_QUEUE_LENGTH);
+  tQueue < std::unique_ptr<tTestType>, CONCURRENCY, tDequeueMode::ALL, MAX_QUEUE_LENGTH != 0 > q;
+  tMaxQueueLength < MAX_QUEUE_LENGTH != 0 >::Set(q, MAX_QUEUE_LENGTH);
+  tQueue < std::unique_ptr<tTestType>, tConcurrency::NONE, tDequeueMode::ALL, MAX_QUEUE_LENGTH != 0 > ref_q;
+  tMaxQueueLength < MAX_QUEUE_LENGTH != 0 >::Set(ref_q, MAX_QUEUE_LENGTH);
 
   RRLIB_LOG_PRINT(USER, " Dequeueing two elements from dequeued fragment:");
   DequeueAll(q, ref_q, true, 2, false);
