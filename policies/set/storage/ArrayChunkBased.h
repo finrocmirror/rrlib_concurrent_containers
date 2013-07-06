@@ -391,9 +391,9 @@ struct ArrayChunkBased
     {
       friend class tInstance;
       template <size_t X = INITIAL_CHUNK_SIZE>
-      tIteratorInternal(typename std::enable_if<X, typename std::conditional<CONST, const tInstance, tInstance>::type>::type& instance) : tIteratorImplementation<CONST>(instance.first_chunk, instance.size) {}
+      tIteratorInternal(typename std::enable_if < X != 0, typename std::conditional<CONST, const tInstance, tInstance>::type >::type& instance) : tIteratorImplementation<CONST>(instance.first_chunk, instance.size) {}
       template <size_t X = INITIAL_CHUNK_SIZE>
-      tIteratorInternal(typename std::enable_if < !X, typename std::conditional<CONST, const tInstance, tInstance>::type >::type& instance) : tIteratorImplementation<CONST>(*instance.first_chunk.next_chunk, instance.size) {}
+      tIteratorInternal(typename std::enable_if <X == 0, typename std::conditional<CONST, const tInstance, tInstance>::type >::type& instance) : tIteratorImplementation<CONST>(*instance.first_chunk.next_chunk, instance.size) {}
       tIteratorInternal() : tIteratorImplementation<CONST>() {}
     };
 
