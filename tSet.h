@@ -104,28 +104,28 @@ struct NullElementDefault
  */
 template < typename T, tAllowDuplicates ALLOW_DUPLICATES, typename TMutex, class TStoragePolicy,
          bool DEREFERENCING_ITERATOR = false, typename TNullElement = NullElementDefault<T >>
-         class tSet : TStoragePolicy::template tInstance<T, ALLOW_DUPLICATES, TMutex, TNullElement, DEREFERENCING_ITERATOR>
-         {
+class tSet : TStoragePolicy::template tInstance<T, ALLOW_DUPLICATES, TMutex, TNullElement, DEREFERENCING_ITERATOR>
+{
 
-           typedef typename TStoragePolicy::template tInstance<T, ALLOW_DUPLICATES, TMutex, TNullElement, DEREFERENCING_ITERATOR> tStoragePolicy;
+  typedef typename TStoragePolicy::template tInstance<T, ALLOW_DUPLICATES, TMutex, TNullElement, DEREFERENCING_ITERATOR> tStoragePolicy;
 
 //----------------------------------------------------------------------
 // Public methods and typedefs
 //----------------------------------------------------------------------
-           public:
+  public:
 
-           /*!
-            * Iterator types to iterate over the list's elements.
-            * Input iterators.
-            */
-           typedef typename tStoragePolicy::tConstIterator tConstIterator;
+  /*!
+   * Iterator types to iterate over the list's elements.
+   * Input iterators.
+   */
+  typedef typename tStoragePolicy::tConstIterator tConstIterator;
 
-           /*!
-            * Adds element to this set (unless element is already in the set and duplicates are not allowed)
-            *
-            * \param element Element to add
-            */
-           void Add(const T& element)
+  /*!
+   * Adds element to this set (unless element is already in the set and duplicates are not allowed)
+   *
+   * \param element Element to add
+   */
+  void Add(const T& element)
 {
   if (element == static_cast<T>(TNullElement::cNULL_ELEMENT))
   {
@@ -207,7 +207,7 @@ void Remove(const T& element)
 //----------------------------------------------------------------------
 private:
 
-         };
+};
 
 //----------------------------------------------------------------------
 // End of namespace declaration
