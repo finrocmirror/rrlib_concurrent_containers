@@ -63,7 +63,7 @@ namespace concurrent_containers
  * Can also make a difference with respect to computational overhead
  * and memory consumption.
  */
-enum tQueueability
+enum class tQueueability
 {
   /*!
    * Object can be used in single-threaded only - with much lower
