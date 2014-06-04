@@ -1,36 +1,37 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE targets PUBLIC "-//RRLIB//DTD make 14.05" "http://finroc.org/xml/14.05/make.dtd">
 <targets>
 
-  <rrlib>
+  <library>
     <sources>
       *.h
       queue/**
       policies/**
     </sources>
-  </rrlib>
+  </library>
   
-  <testprogram name="basic_queue_test">
+  <program name="basic_queue_test">
     <sources>
-      test/basic_queue_test.cpp
+      tests/basic_queue_test.cpp
     </sources>
-  </testprogram>
+  </program>
   
-  <testprogram name="queue_stress_tests">
+  <program name="queue_stress_tests" autorun="false">
     <sources>
-      test/queue_stress_tests.cpp
+      tests/queue_stress_tests.cpp
     </sources>
-  </testprogram>
+  </program>
   
-  <testprogram name="basic_set_test">
+  <program name="basic_set_test">
     <sources>
-      test/basic_set_test.cpp
+      tests/basic_set_test.cpp
     </sources>
-  </testprogram>
+  </program>
   
-  <testprogram name="atomic_int64_stress_test" libs="pthread">
+  <program name="atomic_int64_stress_test" libs="pthread" autorun="false">
     <sources>
-      test/atomic_int64_stress_test.cpp
+      tests/atomic_int64_stress_test.cpp
     </sources>
-  </testprogram>
+  </program>
 
 </targets>

@@ -19,7 +19,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 //----------------------------------------------------------------------
-/*!\file    rrlib/concurrent_containers/test/atomic_int64_stress_test.cpp
+/*!\file    rrlib/concurrent_containers/tests/atomic_int64_stress_test.cpp
  *
  * \author  Max Reichardt
  *
@@ -38,6 +38,7 @@
 #include <vector>
 #include <cstdint>
 //#include <tbb/atomic.h>
+#include "rrlib/util/tUnitTestSuite.h"
 
 //----------------------------------------------------------------------
 // Internal includes with ""
@@ -66,52 +67,66 @@ using namespace std;
 //----------------------------------------------------------------------
 std::atomic<uint64_t> tested(0);
 
-void Test(uint64_t thread_no)
+class tTestAtomicInt64 : public rrlib::util::tUnitTestSuite
 {
-  uint64_t id = (thread_no << 32) | thread_no; // low and high int32 are identical
-  for (uint32_t i = 0; i < 0xFFFFFF; i++)
+  RRLIB_UNIT_TESTS_BEGIN_SUITE(tTestAtomicInt64);
+  RRLIB_UNIT_TESTS_ADD_TEST(Test);
+  RRLIB_UNIT_TESTS_END_SUITE;
+
+  virtual void InitializeTests() override {}
+  virtual void CleanUp() override {}
+
+  static void TestThread(uint64_t thread_no)
   {
-    uint64_t current_value = tested.load();  // produces torn reads on 32-bit Ubuntu 12.04
-    //uint64_t current_value = tested.fetch_add(0);  // this works perfectly
-    do
+    uint64_t id = (thread_no << 32) | thread_no; // low and high int32 are identical
+    for (uint32_t i = 0; i < 0xFFFFFF; i++)
     {
-      assert((current_value >> 32) == (current_value & 0xFFFFFFFF) && "detected torn write"); // check that low and high int32 are identical
+      uint64_t current_value = tested.load();  // produces torn reads on 32-bit Ubuntu 12.04
+      //uint64_t current_value = tested.fetch_add(0);  // this works perfectly
+      do
+      {
+        if ((current_value >> 32) != (current_value & 0xFFFFFFFF))
+        {
+          RRLIB_UNIT_TESTS_ASSERT_MESSAGE("Detected torn write!", false); // check that low and high int32 are identical
+        }
+      }
+      while (!tested.compare_exchange_strong(current_value, id));
     }
-    while (!tested.compare_exchange_strong(current_value, id));
   }
-}
 
-/*tbb::atomic<uint64_t> tested_tbb;
+  /*tbb::atomic<uint64_t> tested_tbb;
 
-void TestTbb(uint64_t thread_no)
-{
-  uint64_t id = (thread_no << 32) | thread_no; // low and high int32 are identical
-  for (uint i = 0; i < 0xFFFFFF; i++)
+  void TestTbb(uint64_t thread_no)
   {
-    uint64_t current_value = tested_tbb.load<tbb::full_fence>();
-    bool again = false;
-    do
+    uint64_t id = (thread_no << 32) | thread_no; // low and high int32 are identical
+    for (uint i = 0; i < 0xFFFFFF; i++)
     {
-      assert((current_value >> 32) == (current_value & 0xFFFFFFFF) && "detected torn write"); // check that low and high int32 are identical
-      uint64_t v = tested_tbb.compare_and_swap(id, current_value);
-      again = (v != current_value);
-    } while (again);
-  }
-}*/
+      uint64_t current_value = tested_tbb.load<tbb::full_fence>();
+      bool again = false;
+      do
+      {
+        assert((current_value >> 32) == (current_value & 0xFFFFFFFF) && "detected torn write"); // check that low and high int32 are identical
+        uint64_t v = tested_tbb.compare_and_swap(id, current_value);
+        again = (v != current_value);
+      } while (again);
+    }
+  }*/
 
-int main(int, char**)
-{
-  //tested_tbb = 0;
-  std::vector<std::thread> threads;
-  for (int i = 0; i < 3; i++)
+  void Test()
   {
-    threads.emplace_back(&Test, i);
-  }
-  for (auto it = threads.begin(); it != threads.end(); ++it)
-  {
-    it->join();
+    //tested_tbb = 0;
+    std::vector<std::thread> threads;
+    for (int i = 0; i < 3; i++)
+    {
+      threads.emplace_back(&TestThread, i);
+    }
+    for (auto it = threads.begin(); it != threads.end(); ++it)
+    {
+      it->join();
+    }
   }
 
-  return 0;
-}
+};
+
+RRLIB_UNIT_TESTS_REGISTER_SUITE(tTestAtomicInt64);
 

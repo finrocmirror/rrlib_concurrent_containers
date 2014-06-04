@@ -19,7 +19,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 //----------------------------------------------------------------------
-/*!\file    rrlib/concurrent_containers/test/basic_set_test.cpp
+/*!\file    rrlib/concurrent_containers/tests/basic_set_test.cpp
  *
  * \author  Max Reichardt
  *
@@ -33,6 +33,7 @@
 // External includes (system with <>, local with "")
 //----------------------------------------------------------------------
 #include "rrlib/logging/messages.h"
+#include "rrlib/util/tUnitTestSuite.h"
 
 //----------------------------------------------------------------------
 // Internal includes with ""
@@ -65,72 +66,89 @@ using namespace rrlib::concurrent_containers;
  * Test int-sets
  */
 template <typename TSet>
-void TestSet(TSet& set)
+void TestSet(TSet& set, bool duplicates_allowed)
 {
-  RRLIB_LOG_PRINT(USER, " Iterating over elements:");
+  RRLIB_LOG_PRINT(DEBUG_VERBOSE_1, " Iterating over elements:");
   for (auto it = set.Begin(); it != set.End(); ++it)
   {
-    RRLIB_LOG_PRINT(USER, "  ", *it);
+    RRLIB_LOG_PRINT(DEBUG_VERBOSE_1, "  ", *it);
   }
 
-  RRLIB_LOG_PRINT(USER, " Adding twenty elements: 1 to 20");
+  RRLIB_LOG_PRINT(DEBUG_VERBOSE_1, " Adding twenty elements: 1 to 20");
   for (int i = 1; i <= 20; ++i)
   {
     set.Add(i);
   }
 
-  RRLIB_LOG_PRINT(USER, " Iterating over elements:");
+  RRLIB_LOG_PRINT(DEBUG_VERBOSE_1, " Iterating over elements:");
+  int i = 0;
   for (auto it = set.Begin(); it != set.End(); ++it)
   {
-    RRLIB_LOG_PRINT(USER, "  ", *it);
+    RRLIB_LOG_PRINT(DEBUG_VERBOSE_1, "  ", *it);
+    i++;
+    RRLIB_UNIT_TESTS_EQUALITY(*it, i);
   }
 
   // Make sure that const iterator compiles
   const TSet& const_set = set;
   for (auto it = const_set.Begin(); it != const_set.End(); ++it);
 
-  RRLIB_LOG_PRINT(USER, " Removing every second element.");
+  RRLIB_LOG_PRINT(DEBUG_VERBOSE_1, " Removing every second element.");
   for (auto it = set.Begin(); it != set.End(); ++it)
   {
     set.Remove(it);
     ++it;
   }
-  RRLIB_LOG_PRINT(USER, " Removing twenty.");
+  RRLIB_LOG_PRINT(DEBUG_VERBOSE_1, " Removing twenty.");
   set.Remove(20);
 
-  RRLIB_LOG_PRINT(USER, " Adding elements 1 to 4.");
+  RRLIB_LOG_PRINT(DEBUG_VERBOSE_1, " Adding elements 1 to 4.");
   for (int i = 1; i <= 4; ++i)
   {
     set.Add(i);
   }
 
-  RRLIB_LOG_PRINT(USER, " Iterating over elements now:");
+  RRLIB_LOG_PRINT(DEBUG_VERBOSE_1, " Iterating over elements now:");
+  i = 0;
   for (auto it = set.Begin(); it != set.End(); ++it)
   {
-    RRLIB_LOG_PRINT(USER, "  ", *it);
+    RRLIB_LOG_PRINT(DEBUG_VERBOSE_1, "  ", *it);
+    RRLIB_UNIT_TESTS_ASSERT(((*it % 2) == 0 || *it <= 4) && (*it <= 18));
+    i += (i >= 4) ? 2 : 1;
+    RRLIB_UNIT_TESTS_ASSERT(duplicates_allowed || (*it == i));
   }
 }
 
-int main(int, char**)
+class tBasicSetTest : public rrlib::util::tUnitTestSuite
 {
+  RRLIB_UNIT_TESTS_BEGIN_SUITE(tBasicSetTest);
+  RRLIB_UNIT_TESTS_ADD_TEST(Test);
+  RRLIB_UNIT_TESTS_END_SUITE;
+
+  virtual void InitializeTests() override {}
+  virtual void CleanUp() override {}
+
+  void Test()
   {
-    RRLIB_LOG_PRINT(USER, "Testing tSet<int, tAllowDuplicates::NO, rrlib::thread::tMutex, set::storage::ArrayChunkBased<2, 6>>");
-    tSet<int, tAllowDuplicates::NO, rrlib::thread::tMutex, set::storage::ArrayChunkBased<2, 6>> set;
-    TestSet(set);
+    {
+      RRLIB_LOG_PRINT(DEBUG_VERBOSE_1, "Testing tSet<int, tAllowDuplicates::NO, rrlib::thread::tMutex, set::storage::ArrayChunkBased<2, 6>>");
+      tSet<int, tAllowDuplicates::NO, rrlib::thread::tMutex, set::storage::ArrayChunkBased<2, 6>> set;
+      TestSet(set, false);
+    }
+
+    {
+      RRLIB_LOG_PRINT(DEBUG_VERBOSE_1, "Testing tSet<int, tAllowDuplicates::NO, rrlib::thread::tMutex, set::storage::ArrayChunkBased<2, 6, true>>");
+      tSet<int, tAllowDuplicates::NO, rrlib::thread::tMutex, set::storage::ArrayChunkBased<2, 6, true>> set;
+      TestSet(set, false);
+    }
+
+    {
+      RRLIB_LOG_PRINT(DEBUG_VERBOSE_1, "Testing tSet<int, tAllowDuplicates::YES, rrlib::thread::tNoMutex, set::storage::ArrayChunkBased<4, 8>>");
+      tSet<int, tAllowDuplicates::YES, rrlib::thread::tNoMutex, set::storage::ArrayChunkBased<4, 8>> set;
+      TestSet(set, true);
+    }
   }
 
-  {
-    RRLIB_LOG_PRINT(USER, "Testing tSet<int, tAllowDuplicates::NO, rrlib::thread::tMutex, set::storage::ArrayChunkBased<2, 6, true>>");
-    tSet<int, tAllowDuplicates::NO, rrlib::thread::tMutex, set::storage::ArrayChunkBased<2, 6, true>> set;
-    TestSet(set);
-  }
+};
 
-  {
-    RRLIB_LOG_PRINT(USER, "Testing tSet<int, tAllowDuplicates::YES, rrlib::thread::tNoMutex, set::storage::ArrayChunkBased<4, 8>>");
-    tSet<int, tAllowDuplicates::YES, rrlib::thread::tNoMutex, set::storage::ArrayChunkBased<4, 8>> set;
-    TestSet(set);
-  }
-
-  return 0;
-}
-
+RRLIB_UNIT_TESTS_REGISTER_SUITE(tBasicSetTest);

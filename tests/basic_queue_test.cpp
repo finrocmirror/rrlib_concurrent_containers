@@ -19,7 +19,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 //----------------------------------------------------------------------
-/*!\file    rrlib/concurrent_containers/test/basic_queue_test.cpp
+/*!\file    rrlib/concurrent_containers/tests/basic_queue_test.cpp
  *
  * \author  Max Reichardt
  *
@@ -33,6 +33,8 @@
 // External includes (system with <>, local with "")
 //----------------------------------------------------------------------
 #include "rrlib/logging/messages.h"
+
+#include "rrlib/util/tUnitTestSuite.h"
 
 //----------------------------------------------------------------------
 // Internal includes with ""
@@ -100,25 +102,18 @@ void DequeueElement(Q& queue, REFQ& ref_queue, PTR& qptr, PTR& refqptr)
 {
   bool success = false;
   qptr = queue.Dequeue(success);
-  assert(success == (qptr.get() != NULL) && "Setting success seems broken");
+  RRLIB_UNIT_TESTS_ASSERT_MESSAGE("Setting success seems broken", success == (qptr.get() != NULL));
   refqptr = ref_queue.Dequeue(success);
   if (qptr)
   {
-    RRLIB_LOG_PRINT(USER, "  Dequeued ", qptr->value);
-    if (!refqptr)
-    {
-      RRLIB_LOG_PRINT(ERROR, "  Should be empty");
-      abort();
-    }
-    else if (!(*qptr == *refqptr))
-    {
-      RRLIB_LOG_PRINT(ERROR, "  Expected ", refqptr->value);
-      abort();
-    }
+    RRLIB_LOG_PRINT(DEBUG_VERBOSE_1, "  Dequeued ", qptr->value);
+    RRLIB_UNIT_TESTS_ASSERT_MESSAGE("Dequeued should be empty", refqptr);
+    RRLIB_UNIT_TESTS_ASSERT_MESSAGE("Expected " + std::to_string(refqptr->value) + " got " + std::to_string(qptr->value), *qptr == *refqptr);
   }
   else
   {
-    RRLIB_LOG_PRINT(USER, "  Dequeued nothing");
+    RRLIB_LOG_PRINT(DEBUG_VERBOSE_1, "  Dequeued nothing");
+    RRLIB_UNIT_TESTS_ASSERT_MESSAGE("Dequeued nothing - expected " + std::to_string(refqptr ? refqptr->value : 0), !refqptr); // added this check 2014 without complaints
   }
 }
 
@@ -134,26 +129,14 @@ void DequeueAll(Q& queue, REFQ& ref_queue, bool fifo, int count, bool reenqueue)
 
     if (qptr)
     {
-      RRLIB_LOG_PRINT(USER, "  Dequeued ", qptr->value);
-      if (!refqptr)
-      {
-        RRLIB_LOG_PRINT(ERROR, "  Should be empty");
-        abort();
-      }
-      else if (!(*qptr == *refqptr))
-      {
-        RRLIB_LOG_PRINT(ERROR, "  Expected ", refqptr->value);
-        abort();
-      }
+      RRLIB_LOG_PRINT(DEBUG_VERBOSE_1, "  Dequeued ", qptr->value);
+      RRLIB_UNIT_TESTS_ASSERT_MESSAGE("Dequeued should be empty", refqptr);
+      RRLIB_UNIT_TESTS_ASSERT_MESSAGE("Expected " + std::to_string(refqptr->value) + " got " + std::to_string(qptr->value), *qptr == *refqptr);
     }
     else
     {
-      RRLIB_LOG_PRINT(USER, "  Dequeued nothing");
-      if (refqptr)
-      {
-        RRLIB_LOG_PRINT(ERROR, "  Expected ", refqptr->value);
-        abort();
-      }
+      RRLIB_LOG_PRINT(DEBUG_VERBOSE_1, "  Dequeued nothing");
+      RRLIB_UNIT_TESTS_ASSERT_MESSAGE("Dequeued nothing - expected " + std::to_string(refqptr ? refqptr->value : 0), !refqptr);
     }
 
     if (reenqueue && qptr && refqptr)
@@ -181,7 +164,7 @@ template <tConcurrency CONCURRENCY, tDequeueMode DQMODE, int MAX_QUEUE_LENGTH, t
 void TestQueue()
 {
   typedef ::tTestType<QA> tTestType;
-  RRLIB_LOG_PRINTF(USER, "Testing tQueue<std::unique_ptr<tTestType>, tConcurrency::%s, tDequeueMode::%s, %d> with tQueueable<%s>",
+  RRLIB_LOG_PRINTF(DEBUG_VERBOSE_1, "Testing tQueue<std::unique_ptr<tTestType>, tConcurrency::%s, tDequeueMode::%s, %d> with tQueueable<%s>",
                    make_builder::GetEnumString(CONCURRENCY), make_builder::GetEnumString(DQMODE), MAX_QUEUE_LENGTH, make_builder::GetEnumString(QA));
   typedef tQueue < std::unique_ptr<tTestType>, CONCURRENCY, DQMODE, MAX_QUEUE_LENGTH != 0 > tQueueType;
   typedef typename tRefQueueType < tTestType, tQueueType::cMINIMUM_ELEMENTS_IN_QEUEUE, MAX_QUEUE_LENGTH != 0 >::type tRefQueueType;
@@ -191,31 +174,31 @@ void TestQueue()
   tRefQueueType ref_q;
   tMaxQueueLength < MAX_QUEUE_LENGTH != 0 >::Set(ref_q, MAX_QUEUE_LENGTH);
 
-  RRLIB_LOG_PRINT(USER, " Dequeueing two elements:");
+  RRLIB_LOG_PRINT(DEBUG_VERBOSE_1, " Dequeueing two elements:");
   for (int i = 0; i < 2; i++)
   {
     DequeueElement(q, ref_q);
   }
 
-  RRLIB_LOG_PRINT(USER, " Enqueueing ten elements: 1 to 10");
+  RRLIB_LOG_PRINT(DEBUG_VERBOSE_1, " Enqueueing ten elements: 1 to 10");
   for (int i = 1; i <= 10; i++)
   {
     q.Enqueue(std::unique_ptr<tTestType>(new tTestType(i)));
     ref_q.Enqueue(std::unique_ptr<tTestType>(new tTestType(i)));
   }
-  RRLIB_LOG_PRINT(USER, " Dequeueing twelve elements:");
+  RRLIB_LOG_PRINT(DEBUG_VERBOSE_1, " Dequeueing twelve elements:");
   for (int i = 0; i < 12; i++)
   {
     DequeueElement(q, ref_q);
   }
 
-  RRLIB_LOG_PRINT(USER, " Enqueueing ten elements: 11 to 20");
+  RRLIB_LOG_PRINT(DEBUG_VERBOSE_1, " Enqueueing ten elements: 11 to 20");
   for (int i = 11; i <= 20; i++)
   {
     q.Enqueue(std::unique_ptr<tTestType>(new tTestType(i)));
     ref_q.Enqueue(std::unique_ptr<tTestType>(new tTestType(i)));
   }
-  RRLIB_LOG_PRINT(USER, " Dequeueing five elements and enqueueing them again:");
+  RRLIB_LOG_PRINT(DEBUG_VERBOSE_1, " Dequeueing five elements and enqueueing them again:");
   for (int i = 0; i < 5; i++)
   {
     std::unique_ptr<tTestType> ptr;
@@ -224,13 +207,13 @@ void TestQueue()
     q.Enqueue(ptr);
     ref_q.Enqueue(ref_ptr);
   }
-  RRLIB_LOG_PRINT(USER, " Dequeueing twelve elements:");
+  RRLIB_LOG_PRINT(DEBUG_VERBOSE_1, " Dequeueing twelve elements:");
   for (int i = 0; i < 12; i++)
   {
     DequeueElement(q, ref_q);
   }
 
-  RRLIB_LOG_PRINT(USER, " Performing one enqueue and dequeue operation 5 times (elements 100 to 104):");
+  RRLIB_LOG_PRINT(DEBUG_VERBOSE_1, " Performing one enqueue and dequeue operation 5 times (elements 100 to 104):");
   for (int i = 0; i < 5; i++)
   {
     q.Enqueue(std::unique_ptr<tTestType>(new tTestType(i + 100)));
@@ -238,46 +221,46 @@ void TestQueue()
     DequeueElement(q, ref_q);
   }
 
-  RRLIB_LOG_PRINT(USER, " ");
+  RRLIB_LOG_PRINT(DEBUG_VERBOSE_1, " ");
 }
 
 template <tConcurrency CONCURRENCY, int MAX_QUEUE_LENGTH, tQueueability QA>
 void TestFragmentQueue()
 {
   typedef ::tTestType<QA> tTestType;
-  RRLIB_LOG_PRINTF(USER, "Testing tQueue<std::unique_ptr<tTestType>, tConcurrency::%s, tDequeueMode::ALL, %d> with tQueueable<%s>",
+  RRLIB_LOG_PRINTF(DEBUG_VERBOSE_1, "Testing tQueue<std::unique_ptr<tTestType>, tConcurrency::%s, tDequeueMode::ALL, %d> with tQueueable<%s>",
                    make_builder::GetEnumString(CONCURRENCY), MAX_QUEUE_LENGTH, make_builder::GetEnumString(QA));
   tQueue < std::unique_ptr<tTestType>, CONCURRENCY, tDequeueMode::ALL, MAX_QUEUE_LENGTH != 0 > q;
   tMaxQueueLength < MAX_QUEUE_LENGTH != 0 >::Set(q, MAX_QUEUE_LENGTH);
   tQueue < std::unique_ptr<tTestType>, tConcurrency::NONE, tDequeueMode::ALL, MAX_QUEUE_LENGTH != 0 > ref_q;
   tMaxQueueLength < MAX_QUEUE_LENGTH != 0 >::Set(ref_q, MAX_QUEUE_LENGTH);
 
-  RRLIB_LOG_PRINT(USER, " Dequeueing two elements from dequeued fragment:");
+  RRLIB_LOG_PRINT(DEBUG_VERBOSE_1, " Dequeueing two elements from dequeued fragment:");
   DequeueAll(q, ref_q, true, 2, false);
 
-  RRLIB_LOG_PRINT(USER, " Enqueueing ten elements: 1 to 10");
+  RRLIB_LOG_PRINT(DEBUG_VERBOSE_1, " Enqueueing ten elements: 1 to 10");
   for (int i = 1; i <= 10; i++)
   {
     q.Enqueue(std::unique_ptr<tTestType>(new tTestType(i)));
     ref_q.Enqueue(std::unique_ptr<tTestType>(new tTestType(i)));
   }
-  RRLIB_LOG_PRINT(USER, " PopFront() twelve elements from dequeued fragment:");
+  RRLIB_LOG_PRINT(DEBUG_VERBOSE_1, " PopFront() twelve elements from dequeued fragment:");
   DequeueAll(q, ref_q, true, 12, false);
-  RRLIB_LOG_PRINT(USER, " PopFront() two elements from another dequeued fragment:");
+  RRLIB_LOG_PRINT(DEBUG_VERBOSE_1, " PopFront() two elements from another dequeued fragment:");
   DequeueAll(q, ref_q, true, 2, false);
 
-  RRLIB_LOG_PRINT(USER, " Enqueueing ten elements: 11 to 20");
+  RRLIB_LOG_PRINT(DEBUG_VERBOSE_1, " Enqueueing ten elements: 11 to 20");
   for (int i = 11; i <= 20; i++)
   {
     q.Enqueue(std::unique_ptr<tTestType>(new tTestType(i)));
     ref_q.Enqueue(std::unique_ptr<tTestType>(new tTestType(i)));
   }
-  RRLIB_LOG_PRINT(USER, " PopBack() five elements and enqueueing them again:");
+  RRLIB_LOG_PRINT(DEBUG_VERBOSE_1, " PopBack() five elements and enqueueing them again:");
   DequeueAll(q, ref_q, false, 5, true);
-  RRLIB_LOG_PRINT(USER, " PopBack() six elements from next fragment:");
+  RRLIB_LOG_PRINT(DEBUG_VERBOSE_1, " PopBack() six elements from next fragment:");
   DequeueAll(q, ref_q, false, 6, false);
 
-  RRLIB_LOG_PRINT(USER, " Performing one enqueue and dequeue operation 5 times (elements 100 to 104):");
+  RRLIB_LOG_PRINT(DEBUG_VERBOSE_1, " Performing one enqueue and dequeue operation 5 times (elements 100 to 104):");
   for (int i = 0; i < 5; i++)
   {
     q.Enqueue(std::unique_ptr<tTestType>(new tTestType(i + 100)));
@@ -285,7 +268,7 @@ void TestFragmentQueue()
     DequeueAll(q, ref_q, i % 2, 1, false);
   }
 
-  RRLIB_LOG_PRINT(USER, " ");
+  RRLIB_LOG_PRINT(DEBUG_VERBOSE_1, " ");
 }
 
 template <tDequeueMode DEQUEUE_MODE, int MAX_QUEUE_LENGTH>
@@ -320,21 +303,32 @@ void TestFragmentQueueConcurrencyLevels()
   TestFragmentQueue<tConcurrency::FULL, MAX_QUEUE_LENGTH, tQueueability::FULL_OPTIMIZED>();
 }
 
-int main(int, char**)
+class tBasicQueueTest : public rrlib::util::tUnitTestSuite
 {
-  TestQueueConcurrencyLevels<tDequeueMode::FIFO, 0>();
-  TestQueueConcurrencyLevels<tDequeueMode::FIFO_FAST, 0>();
-  TestQueueConcurrencyLevels<tDequeueMode::FIFO, 1>();
-  TestQueueConcurrencyLevels<tDequeueMode::FIFO_FAST, 1>();
-  TestQueueConcurrencyLevels<tDequeueMode::FIFO, 2>();
-  TestQueueConcurrencyLevels<tDequeueMode::FIFO_FAST, 2>();
-  TestQueueConcurrencyLevels<tDequeueMode::FIFO, 5>();
-  TestQueueConcurrencyLevels<tDequeueMode::FIFO_FAST, 5>();
+  RRLIB_UNIT_TESTS_BEGIN_SUITE(tBasicQueueTest);
+  RRLIB_UNIT_TESTS_ADD_TEST(Test);
+  RRLIB_UNIT_TESTS_END_SUITE;
 
-  TestFragmentQueueConcurrencyLevels<0, tQueueability::MOST>();
-  TestFragmentQueueConcurrencyLevels<1, tQueueability::FULL>();
-  TestFragmentQueueConcurrencyLevels<2, tQueueability::FULL>();
-  TestFragmentQueueConcurrencyLevels<5, tQueueability::FULL>();
+  virtual void InitializeTests() override {}
+  virtual void CleanUp() override {}
 
-  return 0;
-}
+  void Test()
+  {
+    TestQueueConcurrencyLevels<tDequeueMode::FIFO, 0>();
+    TestQueueConcurrencyLevels<tDequeueMode::FIFO_FAST, 0>();
+    TestQueueConcurrencyLevels<tDequeueMode::FIFO, 1>();
+    TestQueueConcurrencyLevels<tDequeueMode::FIFO_FAST, 1>();
+    TestQueueConcurrencyLevels<tDequeueMode::FIFO, 2>();
+    TestQueueConcurrencyLevels<tDequeueMode::FIFO_FAST, 2>();
+    TestQueueConcurrencyLevels<tDequeueMode::FIFO, 5>();
+    TestQueueConcurrencyLevels<tDequeueMode::FIFO_FAST, 5>();
+
+    TestFragmentQueueConcurrencyLevels<0, tQueueability::MOST>();
+    TestFragmentQueueConcurrencyLevels<1, tQueueability::FULL>();
+    TestFragmentQueueConcurrencyLevels<2, tQueueability::FULL>();
+    TestFragmentQueueConcurrencyLevels<5, tQueueability::FULL>();
+  }
+
+};
+
+RRLIB_UNIT_TESTS_REGISTER_SUITE(tBasicQueueTest);

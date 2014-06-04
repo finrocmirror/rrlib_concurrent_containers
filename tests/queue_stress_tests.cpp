@@ -19,7 +19,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 //----------------------------------------------------------------------
-/*!\file    rrlib/concurrent_containers/test/queue_stress_tests.cpp
+/*!\file    rrlib/concurrent_containers/tests/queue_stress_tests.cpp
  *
  * \author  Max Reichardt
  *
@@ -36,6 +36,7 @@
 #include "rrlib/logging/messages.h"
 #include <thread>
 #include <cstring>
+#include "rrlib/util/tUnitTestSuite.h"
 
 //----------------------------------------------------------------------
 // Internal includes with ""
@@ -60,7 +61,7 @@ using namespace rrlib::concurrent_containers;
 // Const values
 //----------------------------------------------------------------------
 const int cTHREADS = 3;
-const int cBUFFERS = 60000000;
+const int cBUFFERS = 40000000;
 //const int cBUFFERS = 1000000;
 const int cWAIT_EVERY = 20000;
 
@@ -151,7 +152,7 @@ struct tBufferDequeueing
       if (buffer->thread_no < 0 || buffer->thread_no >= cTHREADS)
       {
         RRLIB_LOG_PRINT(ERROR, "Invalid thread number: ", buffer->GetThreadNo());
-        abort();
+        RRLIB_UNIT_TESTS_ASSERT_MESSAGE("Failed.", false);
       }
 
       if (reader_threads <= 1 && (!BOUNDED))
@@ -160,7 +161,7 @@ struct tBufferDequeueing
         {
           RRLIB_LOG_PRINT(ERROR, "Test failed: Element from thread ", buffer->GetThreadNo(), " - expected ", next_element_index[buffer->thread_no], " got ", buffer->element_no);
           RRLIB_LOG_PRINT(ERROR, "#Elements dequeued in total: ", dequeued_elements);
-          abort();
+          RRLIB_UNIT_TESTS_ASSERT_MESSAGE("Failed.", false);
         }
         next_element_index[buffer->thread_no]++;
       }
@@ -170,7 +171,7 @@ struct tBufferDequeueing
         {
           RRLIB_LOG_PRINT(ERROR, "Test failed: Element from thread ", buffer->GetThreadNo(), " - expected >= ", next_element_index[buffer->thread_no], " got ", buffer->element_no);
           RRLIB_LOG_PRINT(ERROR, "#Elements dequeued by this thread: ", dequeued_elements);
-          abort();
+          RRLIB_UNIT_TESTS_ASSERT_MESSAGE("Failed.", false);
         }
         next_element_index[buffer->thread_no] = buffer->element_no + 1;
       }
@@ -209,13 +210,13 @@ struct tBufferDequeueing<T, CONCURRENCY, tDequeueMode::ALL, BOUNDED>
           delete buffer.release();
           dequeued_elements_global += dequeued_elements;
           RRLIB_LOG_PRINT(USER, "  Thread dequeued ", dequeued_elements, " elements in ", rrlib::time::ToString(rrlib::time::Now() - start), ".");
-          return;
+          RRLIB_UNIT_TESTS_ASSERT_MESSAGE("Failed.", false);
         }
 
         if (buffer->thread_no < 0 || buffer->thread_no >= cTHREADS)
         {
           RRLIB_LOG_PRINT(ERROR, "Invalid thread number: ", buffer->GetThreadNo());
-          abort();
+          RRLIB_UNIT_TESTS_ASSERT_MESSAGE("Failed.", false);
         }
 
         if (reader_threads <= 1 && (!BOUNDED))
@@ -223,7 +224,7 @@ struct tBufferDequeueing<T, CONCURRENCY, tDequeueMode::ALL, BOUNDED>
           if (buffer->element_no != next_element_index[buffer->thread_no])
           {
             RRLIB_LOG_PRINT(ERROR, "Test failed: Element from thread ", buffer->GetThreadNo(), " - expected ", next_element_index[buffer->thread_no], " got ", buffer->element_no);
-            abort();
+            RRLIB_UNIT_TESTS_ASSERT_MESSAGE("Failed.", false);
           }
           next_element_index[buffer->thread_no]++;
         }
@@ -232,7 +233,7 @@ struct tBufferDequeueing<T, CONCURRENCY, tDequeueMode::ALL, BOUNDED>
           if (buffer->element_no < next_element_index[buffer->thread_no])
           {
             RRLIB_LOG_PRINT(ERROR, "Test failed: Element from thread ", buffer->GetThreadNo(), " - expected >= ", next_element_index[buffer->thread_no], " got ", buffer->element_no);
-            abort();
+            RRLIB_UNIT_TESTS_ASSERT_MESSAGE("Failed.", false);
           }
           next_element_index[buffer->thread_no] = buffer->element_no + 1;
         }
@@ -260,12 +261,12 @@ void BufferCheckAndReset(tTestType* buffers, int threads)
       if (!((deq == 1 && dis == 0) || (deq == 0 && dis == 1)))
       {
         RRLIB_LOG_PRINT(ERROR, "Corrupt element (index, ", i * cBUFFERS + j, ") - Dequeued: ", deq, "  Discarded: ", dis);
-        abort();
+        RRLIB_UNIT_TESTS_ASSERT_MESSAGE("Failed.", false);
       }
       if (tt.next_queueable)
       {
         RRLIB_LOG_PRINT(ERROR, "Corrupt element (index, ", i * cBUFFERS + j, ") - next_queueable is not NULL");
-        abort();
+        RRLIB_UNIT_TESTS_ASSERT_MESSAGE("Failed.", false);
       }
     }
   }
@@ -291,8 +292,9 @@ struct tMaxQueueLength<true>
 template <tConcurrency CONCURRENCY, tDequeueMode DEQUEUE_MODE, int MAX_QUEUE_LENGTH, bool WRITE_DELAYS>
 void PerformTest(tTestType* buffers)
 {
-  typedef typename std::conditional<MAX_QUEUE_LENGTH, std::unique_ptr<tTestType, tCountingDeleter>, std::unique_ptr<tTestType>>::type tPointer;
-  typedef tQueue<tPointer, CONCURRENCY, DEQUEUE_MODE, MAX_QUEUE_LENGTH> tQueueType;
+  enum { MAX_QUEUE_LENGTH_SET = MAX_QUEUE_LENGTH != 0 };
+  typedef typename std::conditional<MAX_QUEUE_LENGTH_SET, std::unique_ptr<tTestType, tCountingDeleter>, std::unique_ptr<tTestType>>::type tPointer;
+  typedef tQueue<tPointer, CONCURRENCY, DEQUEUE_MODE, MAX_QUEUE_LENGTH_SET> tQueueType;
 
   test_count++;
   RRLIB_LOG_PRINTF(USER, "Test %d/96: tQueue<std::unique_ptr<tTestType>, tConcurrency::%s, tDequeueMode::%s, %d> %s:",
@@ -304,19 +306,19 @@ void PerformTest(tTestType* buffers)
   const int cTERMINATORS = cREADER_THREADS + tQueueType::cMINIMUM_ELEMENTS_IN_QEUEUE;
 
   tQueueType queue;
-  tMaxQueueLength<MAX_QUEUE_LENGTH>::Set(queue, MAX_QUEUE_LENGTH);
+  tMaxQueueLength<MAX_QUEUE_LENGTH_SET>::Set(queue, MAX_QUEUE_LENGTH);
   std::vector<std::thread> threads;
 
   // create writer threads
   for (int i = 0; i < cWRITER_THREADS; i++)
   {
-    threads.emplace_back(EnqueueBuffers<tPointer, CONCURRENCY, DEQUEUE_MODE, MAX_QUEUE_LENGTH, WRITE_DELAYS>, std::ref(queue), &(buffers[i * cBUFFERS]));
+    threads.emplace_back(EnqueueBuffers<tPointer, CONCURRENCY, DEQUEUE_MODE, MAX_QUEUE_LENGTH_SET, WRITE_DELAYS>, std::ref(queue), &(buffers[i * cBUFFERS]));
   }
 
   // create reader threads
   for (int i = 0; i < cREADER_THREADS; i++)
   {
-    threads.emplace_back(tBufferDequeueing<tPointer, CONCURRENCY, DEQUEUE_MODE, MAX_QUEUE_LENGTH>::Dequeue, std::ref(queue), cREADER_THREADS);
+    threads.emplace_back(tBufferDequeueing<tPointer, CONCURRENCY, DEQUEUE_MODE, MAX_QUEUE_LENGTH_SET>::Dequeue, std::ref(queue), cREADER_THREADS);
   }
 
   // wait for writer threads
@@ -346,7 +348,7 @@ void PerformTest(tTestType* buffers)
     if (dequeued_elements_global != cWRITER_THREADS * cBUFFERS)
     {
       RRLIB_LOG_PRINT(ERROR, dequeued_elements_global, " elements were dequeued in total. Expected ", cWRITER_THREADS * cBUFFERS);
-      abort();
+      RRLIB_UNIT_TESTS_ASSERT_MESSAGE("Failed.", false);
     }
   }
   else
@@ -356,7 +358,7 @@ void PerformTest(tTestType* buffers)
     if (all != cWRITER_THREADS * cBUFFERS)
     {
       RRLIB_LOG_PRINT(ERROR, all, " elements were dequeued/discarded in total. Expected ", cWRITER_THREADS * cBUFFERS);
-      abort();
+      RRLIB_UNIT_TESTS_ASSERT_MESSAGE("Failed.", false);
     }
     RRLIB_LOG_PRINT(USER, dequeued_elements_global, " elements were dequeued in total. ", discarded_elements_global, " elements were discarded.");
   }
@@ -371,57 +373,63 @@ void PerformTests(tTestType* buffers)
   PerformTest<tConcurrency::FULL, DEQUEUE_MODE, MAX_QUEUE_LENGTH, WRITE_DELAYS>(buffers);
 }
 
-int main(int, char**)
+class tQueueStressTest : public rrlib::util::tUnitTestSuite
 {
-#if (__GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ <= 5))
-  RRLIB_LOG_PRINT(USER, "This test requires at least gcc 4.6.");
-#else
-  RRLIB_LOG_PRINT(USER, "Allocating ", (cTHREADS * cBUFFERS * sizeof(tTestType)) / (1024 * 1024), " MB of buffers.");
-  tTestType* buffers = new tTestType[cTHREADS * cBUFFERS];
-  if (!buffers)
-  {
-    RRLIB_LOG_PRINT(ERROR, "Failed.");
-    abort();
-  }
+  RRLIB_UNIT_TESTS_BEGIN_SUITE(tQueueStressTest);
+  RRLIB_UNIT_TESTS_ADD_TEST(Test);
+  RRLIB_UNIT_TESTS_END_SUITE;
 
-  // Prepare buffers
-  for (int i = 0; i < cTHREADS; i++)
+  virtual void InitializeTests() override {}
+  virtual void CleanUp() override {}
+
+  void Test()
   {
-    for (int j = 0; j < cBUFFERS; j++)
+    RRLIB_LOG_PRINT(USER, "Allocating ", (cTHREADS * cBUFFERS * sizeof(tTestType)) / (1024 * 1024), " MB of buffers.");
+    tTestType* buffers = new tTestType[cTHREADS * cBUFFERS];
+    if (!buffers)
     {
-      buffers[i * cBUFFERS + j].element_no = j;
-      buffers[i * cBUFFERS + j].thread_no = i;
+      RRLIB_UNIT_TESTS_ASSERT_MESSAGE("Failed.", false);
     }
+
+    // Prepare buffers
+    for (int i = 0; i < cTHREADS; i++)
+    {
+      for (int j = 0; j < cBUFFERS; j++)
+      {
+        buffers[i * cBUFFERS + j].element_no = j;
+        buffers[i * cBUFFERS + j].thread_no = i;
+      }
+    }
+
+    PerformTests<tDequeueMode::FIFO, 0, false>(buffers);
+    PerformTests<tDequeueMode::FIFO_FAST, 0, false>(buffers);
+    PerformTests<tDequeueMode::FIFO, 1, false>(buffers);
+    PerformTests<tDequeueMode::FIFO_FAST, 1, false>(buffers);
+    PerformTests<tDequeueMode::FIFO, 2, false>(buffers);
+    PerformTests<tDequeueMode::FIFO_FAST, 2, false>(buffers);
+    PerformTests<tDequeueMode::FIFO, 500, false>(buffers);
+    PerformTests<tDequeueMode::FIFO_FAST, 500, false>(buffers);
+
+    PerformTests<tDequeueMode::ALL, 0, false>(buffers);
+    PerformTests<tDequeueMode::ALL, 1, false>(buffers);
+    PerformTests<tDequeueMode::ALL, 2, false>(buffers);
+    PerformTests<tDequeueMode::ALL, 500, false>(buffers);
+
+    PerformTests<tDequeueMode::FIFO, 0, true>(buffers);
+    PerformTests<tDequeueMode::FIFO_FAST, 0, true>(buffers);
+    PerformTests<tDequeueMode::FIFO, 1, true>(buffers);
+    PerformTests<tDequeueMode::FIFO_FAST, 1, true>(buffers);
+    PerformTests<tDequeueMode::FIFO, 2, true>(buffers);
+    PerformTests<tDequeueMode::FIFO_FAST, 2, true>(buffers);
+    PerformTests<tDequeueMode::FIFO, 500, true>(buffers);
+    PerformTests<tDequeueMode::FIFO_FAST, 500, true>(buffers);
+
+    PerformTests<tDequeueMode::ALL, 0, true>(buffers);
+    PerformTests<tDequeueMode::ALL, 1, true>(buffers);
+    PerformTests<tDequeueMode::ALL, 2, true>(buffers);
+    PerformTests<tDequeueMode::ALL, 500, true>(buffers);
   }
 
-  PerformTests<tDequeueMode::FIFO, 0, false>(buffers);
-  PerformTests<tDequeueMode::FIFO_FAST, 0, false>(buffers);
-  PerformTests<tDequeueMode::FIFO, 1, false>(buffers);
-  PerformTests<tDequeueMode::FIFO_FAST, 1, false>(buffers);
-  PerformTests<tDequeueMode::FIFO, 2, false>(buffers);
-  PerformTests<tDequeueMode::FIFO_FAST, 2, false>(buffers);
-  PerformTests<tDequeueMode::FIFO, 500, false>(buffers);
-  PerformTests<tDequeueMode::FIFO_FAST, 500, false>(buffers);
+};
 
-  PerformTests<tDequeueMode::ALL, 0, false>(buffers);
-  PerformTests<tDequeueMode::ALL, 1, false>(buffers);
-  PerformTests<tDequeueMode::ALL, 2, false>(buffers);
-  PerformTests<tDequeueMode::ALL, 500, false>(buffers);
-
-  PerformTests<tDequeueMode::FIFO, 0, true>(buffers);
-  PerformTests<tDequeueMode::FIFO_FAST, 0, true>(buffers);
-  PerformTests<tDequeueMode::FIFO, 1, true>(buffers);
-  PerformTests<tDequeueMode::FIFO_FAST, 1, true>(buffers);
-  PerformTests<tDequeueMode::FIFO, 2, true>(buffers);
-  PerformTests<tDequeueMode::FIFO_FAST, 2, true>(buffers);
-  PerformTests<tDequeueMode::FIFO, 500, true>(buffers);
-  PerformTests<tDequeueMode::FIFO_FAST, 500, true>(buffers);
-
-  PerformTests<tDequeueMode::ALL, 0, true>(buffers);
-  PerformTests<tDequeueMode::ALL, 1, true>(buffers);
-  PerformTests<tDequeueMode::ALL, 2, true>(buffers);
-  PerformTests<tDequeueMode::ALL, 500, true>(buffers);
-
-#endif
-  return 0;
-}
+RRLIB_UNIT_TESTS_REGISTER_SUITE(tQueueStressTest);
