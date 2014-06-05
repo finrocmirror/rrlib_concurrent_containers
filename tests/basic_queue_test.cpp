@@ -49,7 +49,14 @@
 //----------------------------------------------------------------------
 // Namespace usage
 //----------------------------------------------------------------------
-using namespace rrlib::concurrent_containers;
+
+//----------------------------------------------------------------------
+// Namespace declaration
+//----------------------------------------------------------------------
+namespace rrlib
+{
+namespace concurrent_containers
+{
 
 //----------------------------------------------------------------------
 // Implementation
@@ -163,7 +170,7 @@ struct tRefQueueType<T, 1, BOUNDED>
 template <tConcurrency CONCURRENCY, tDequeueMode DQMODE, int MAX_QUEUE_LENGTH, tQueueability QA>
 void TestQueue()
 {
-  typedef ::tTestType<QA> tTestType;
+  typedef tTestType<QA> tTestType;
   RRLIB_LOG_PRINTF(DEBUG_VERBOSE_1, "Testing tQueue<std::unique_ptr<tTestType>, tConcurrency::%s, tDequeueMode::%s, %d> with tQueueable<%s>",
                    make_builder::GetEnumString(CONCURRENCY), make_builder::GetEnumString(DQMODE), MAX_QUEUE_LENGTH, make_builder::GetEnumString(QA));
   typedef tQueue < std::unique_ptr<tTestType>, CONCURRENCY, DQMODE, MAX_QUEUE_LENGTH != 0 > tQueueType;
@@ -227,7 +234,7 @@ void TestQueue()
 template <tConcurrency CONCURRENCY, int MAX_QUEUE_LENGTH, tQueueability QA>
 void TestFragmentQueue()
 {
-  typedef ::tTestType<QA> tTestType;
+  typedef tTestType<QA> tTestType;
   RRLIB_LOG_PRINTF(DEBUG_VERBOSE_1, "Testing tQueue<std::unique_ptr<tTestType>, tConcurrency::%s, tDequeueMode::ALL, %d> with tQueueable<%s>",
                    make_builder::GetEnumString(CONCURRENCY), MAX_QUEUE_LENGTH, make_builder::GetEnumString(QA));
   tQueue < std::unique_ptr<tTestType>, CONCURRENCY, tDequeueMode::ALL, MAX_QUEUE_LENGTH != 0 > q;
@@ -303,14 +310,11 @@ void TestFragmentQueueConcurrencyLevels()
   TestFragmentQueue<tConcurrency::FULL, MAX_QUEUE_LENGTH, tQueueability::FULL_OPTIMIZED>();
 }
 
-class tBasicQueueTest : public rrlib::util::tUnitTestSuite
+class BasicQueueTest : public util::tUnitTestSuite
 {
-  RRLIB_UNIT_TESTS_BEGIN_SUITE(tBasicQueueTest);
+  RRLIB_UNIT_TESTS_BEGIN_SUITE(BasicQueueTest);
   RRLIB_UNIT_TESTS_ADD_TEST(Test);
   RRLIB_UNIT_TESTS_END_SUITE;
-
-  virtual void InitializeTests() override {}
-  virtual void CleanUp() override {}
 
   void Test()
   {
@@ -331,4 +335,10 @@ class tBasicQueueTest : public rrlib::util::tUnitTestSuite
 
 };
 
-RRLIB_UNIT_TESTS_REGISTER_SUITE(tBasicQueueTest);
+RRLIB_UNIT_TESTS_REGISTER_SUITE(BasicQueueTest);
+
+//----------------------------------------------------------------------
+// End of namespace declaration
+//----------------------------------------------------------------------
+}
+}

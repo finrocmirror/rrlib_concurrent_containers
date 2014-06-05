@@ -51,7 +51,14 @@
 //----------------------------------------------------------------------
 // Namespace usage
 //----------------------------------------------------------------------
-using namespace rrlib::concurrent_containers;
+
+//----------------------------------------------------------------------
+// Namespace declaration
+//----------------------------------------------------------------------
+namespace rrlib
+{
+namespace concurrent_containers
+{
 
 //----------------------------------------------------------------------
 // Forward declarations / typedefs / enums
@@ -373,14 +380,11 @@ void PerformTests(tTestType* buffers)
   PerformTest<tConcurrency::FULL, DEQUEUE_MODE, MAX_QUEUE_LENGTH, WRITE_DELAYS>(buffers);
 }
 
-class tQueueStressTest : public rrlib::util::tUnitTestSuite
+class QueueStressTest : public util::tUnitTestSuite
 {
-  RRLIB_UNIT_TESTS_BEGIN_SUITE(tQueueStressTest);
+  RRLIB_UNIT_TESTS_BEGIN_SUITE(QueueStressTest);
   RRLIB_UNIT_TESTS_ADD_TEST(Test);
   RRLIB_UNIT_TESTS_END_SUITE;
-
-  virtual void InitializeTests() override {}
-  virtual void CleanUp() override {}
 
   void Test()
   {
@@ -432,4 +436,10 @@ class tQueueStressTest : public rrlib::util::tUnitTestSuite
 
 };
 
-RRLIB_UNIT_TESTS_REGISTER_SUITE(tQueueStressTest);
+RRLIB_UNIT_TESTS_REGISTER_SUITE(QueueStressTest);
+
+//----------------------------------------------------------------------
+// End of namespace declaration
+//----------------------------------------------------------------------
+}
+}

@@ -48,7 +48,14 @@
 //----------------------------------------------------------------------
 // Namespace usage
 //----------------------------------------------------------------------
-using namespace rrlib::concurrent_containers;
+
+//----------------------------------------------------------------------
+// Namespace declaration
+//----------------------------------------------------------------------
+namespace rrlib
+{
+namespace concurrent_containers
+{
 
 //----------------------------------------------------------------------
 // Forward declarations / typedefs / enums
@@ -119,14 +126,11 @@ void TestSet(TSet& set, bool duplicates_allowed)
   }
 }
 
-class tBasicSetTest : public rrlib::util::tUnitTestSuite
+class BasicSetTest : public util::tUnitTestSuite
 {
-  RRLIB_UNIT_TESTS_BEGIN_SUITE(tBasicSetTest);
+  RRLIB_UNIT_TESTS_BEGIN_SUITE(BasicSetTest);
   RRLIB_UNIT_TESTS_ADD_TEST(Test);
   RRLIB_UNIT_TESTS_END_SUITE;
-
-  virtual void InitializeTests() override {}
-  virtual void CleanUp() override {}
 
   void Test()
   {
@@ -151,4 +155,10 @@ class tBasicSetTest : public rrlib::util::tUnitTestSuite
 
 };
 
-RRLIB_UNIT_TESTS_REGISTER_SUITE(tBasicSetTest);
+RRLIB_UNIT_TESTS_REGISTER_SUITE(BasicSetTest);
+
+//----------------------------------------------------------------------
+// End of namespace declaration
+//----------------------------------------------------------------------
+}
+}

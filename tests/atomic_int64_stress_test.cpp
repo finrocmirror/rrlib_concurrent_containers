@@ -52,7 +52,14 @@
 //----------------------------------------------------------------------
 // Namespace usage
 //----------------------------------------------------------------------
-using namespace std;
+
+//----------------------------------------------------------------------
+// Namespace declaration
+//----------------------------------------------------------------------
+namespace rrlib
+{
+namespace concurrent_containers
+{
 
 //----------------------------------------------------------------------
 // Forward declarations / typedefs / enums
@@ -67,14 +74,11 @@ using namespace std;
 //----------------------------------------------------------------------
 std::atomic<uint64_t> tested(0);
 
-class tTestAtomicInt64 : public rrlib::util::tUnitTestSuite
+class TestAtomicInt64 : public util::tUnitTestSuite
 {
-  RRLIB_UNIT_TESTS_BEGIN_SUITE(tTestAtomicInt64);
+  RRLIB_UNIT_TESTS_BEGIN_SUITE(TestAtomicInt64);
   RRLIB_UNIT_TESTS_ADD_TEST(Test);
   RRLIB_UNIT_TESTS_END_SUITE;
-
-  virtual void InitializeTests() override {}
-  virtual void CleanUp() override {}
 
   static void TestThread(uint64_t thread_no)
   {
@@ -128,5 +132,10 @@ class tTestAtomicInt64 : public rrlib::util::tUnitTestSuite
 
 };
 
-RRLIB_UNIT_TESTS_REGISTER_SUITE(tTestAtomicInt64);
+RRLIB_UNIT_TESTS_REGISTER_SUITE(TestAtomicInt64);
 
+//----------------------------------------------------------------------
+// End of namespace declaration
+//----------------------------------------------------------------------
+}
+}
