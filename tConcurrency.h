@@ -69,7 +69,7 @@ enum class tConcurrency
   SINGLE_READER_AND_WRITER,      //!< Only a single thread may write concurrently. Only one (other) thread may read concurrently.
   MULTIPLE_WRITERS,              //!< Multiple threads may write concurrently
   MULTIPLE_READERS,              //!< Multiple threads may read concurrently
-  FULL,                          //!< Mutliple threads may read and write concurrently
+  FULL,                          //!< Multiple threads may read and write concurrently
 };
 
 //----------------------------------------------------------------------
